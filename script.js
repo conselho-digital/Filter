@@ -6,13 +6,38 @@ const HAND_MODEL_URL =
 const FACE_MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 
-const FINGER_MARGIN = 1.1;
 const HISTORY_LEN = 5;
 const HAND_TIMEOUT_MS = 500;
-const BLINK_CLOSE_THRESHOLD = 0.5;
-const BLINK_OPEN_THRESHOLD = 0.3;
 const BLINK_COOLDOWN_MS = 700;
-const DARKEN_ALPHA = 0.35;
+const BLINK_THRESHOLD_GAP = 0.2;
+
+const SETTINGS_STORAGE_KEY = "filter-settings";
+const DEFAULT_SETTINGS = {
+  mirrorFrontCamera: true,
+  blinkCycleEnabled: true,
+  darkenAlpha: 0.35, // 0 - 0.8
+  fingerMargin: 1.1, // 1.05 - 1.3
+  blinkThreshold: 0.5, // 0.3 - 0.7 (limiar de olho fechado)
+};
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : { ...DEFAULT_SETTINGS };
+  } catch (e) {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch (e) {
+    // localStorage indisponível (ex.: navegação privada) — segue sem persistir
+  }
+}
+
+const settings = loadSettings();
 
 const SHAPE_NAMES = {
   rect: "Retângulo",
@@ -31,6 +56,15 @@ const loadingIndicator = document.getElementById("loading-indicator");
 const errorBanner = document.getElementById("error-banner");
 const startBtn = document.getElementById("start-btn");
 const toggleCameraBtn = document.getElementById("toggle-camera-btn");
+const settingsBtn = document.getElementById("settings-btn");
+const settingsOverlay = document.getElementById("settings-overlay");
+const settingsCloseBtn = document.getElementById("settings-close-btn");
+const settingsResetBtn = document.getElementById("settings-reset-btn");
+const settingMirror = document.getElementById("setting-mirror");
+const settingBlinkEnabled = document.getElementById("setting-blink-enabled");
+const settingDarken = document.getElementById("setting-darken");
+const settingFinger = document.getElementById("setting-finger");
+const settingBlinkSens = document.getElementById("setting-blink-sens");
 
 const state = {
   handLandmarker: null,
@@ -124,12 +158,12 @@ const FINGER_TIPS_PIPS = [
 
 function isFingerExtended(lm, tipIdx, pipIdx) {
   const wrist = lm[0];
-  return dist(wrist, lm[tipIdx]) > dist(wrist, lm[pipIdx]) * FINGER_MARGIN;
+  return dist(wrist, lm[tipIdx]) > dist(wrist, lm[pipIdx]) * settings.fingerMargin;
 }
 
 function isThumbExtended(lm) {
   const pinkyMcp = lm[17];
-  return dist(lm[4], pinkyMcp) > dist(lm[3], pinkyMcp) * FINGER_MARGIN;
+  return dist(lm[4], pinkyMcp) > dist(lm[3], pinkyMcp) * settings.fingerMargin;
 }
 
 function countExtendedFingers(lm) {
@@ -250,13 +284,11 @@ function detectBlink(faceResult, now) {
 
   const leftScore = getBlendshapeScore(blendshapes, "eyeBlinkLeft");
   const rightScore = getBlendshapeScore(blendshapes, "eyeBlinkRight");
+  const closeThreshold = settings.blinkThreshold;
+  const openThreshold = Math.max(0.1, closeThreshold - BLINK_THRESHOLD_GAP);
 
   let fired = false;
-  if (
-    state.blinkPhase === "open" &&
-    leftScore > BLINK_CLOSE_THRESHOLD &&
-    rightScore > BLINK_CLOSE_THRESHOLD
-  ) {
+  if (state.blinkPhase === "open" && leftScore > closeThreshold && rightScore > closeThreshold) {
     state.blinkPhase = "closed";
     if (now - state.lastBlinkCycleAt > BLINK_COOLDOWN_MS) {
       fired = true;
@@ -264,8 +296,8 @@ function detectBlink(faceResult, now) {
     }
   } else if (
     state.blinkPhase === "closed" &&
-    leftScore < BLINK_OPEN_THRESHOLD &&
-    rightScore < BLINK_OPEN_THRESHOLD
+    leftScore < openThreshold &&
+    rightScore < openThreshold
   ) {
     state.blinkPhase = "open";
   }
@@ -279,7 +311,7 @@ function resolveFilter(hands, rightCount, now, blinkFired) {
 
   if (!rightTimedOut && hands.right && rightCount >= 1 && rightCount <= 4) {
     state.filterIndex = rightCount - 1;
-  } else if (blinkFired) {
+  } else if (blinkFired && settings.blinkCycleEnabled) {
     state.filterIndex = state.filterIndex === null ? 0 : (state.filterIndex + 1) % 4;
   } else if (rightTimedOut) {
     state.filterIndex = null;
@@ -330,7 +362,7 @@ function drawFrame() {
   if (!w || !h) return;
 
   ctx.save();
-  if (state.facingMode === "user") {
+  if (state.facingMode === "user" && settings.mirrorFrontCamera) {
     ctx.translate(w, 0);
     ctx.scale(-1, 1);
   }
@@ -340,7 +372,7 @@ function drawFrame() {
   } else {
     ctx.filter = "none";
     ctx.drawImage(video, 0, 0, w, h);
-    ctx.fillStyle = `rgba(0,0,0,${DARKEN_ALPHA})`;
+    ctx.fillStyle = `rgba(0,0,0,${settings.darkenAlpha})`;
     ctx.fillRect(0, 0, w, h);
 
     if (state.windowPoints) {
@@ -582,4 +614,60 @@ startBtn.addEventListener("click", async () => {
 
 toggleCameraBtn.addEventListener("click", () => {
   switchCamera();
+});
+
+// ---------- configurações ----------
+
+function populateSettingsUI() {
+  settingMirror.checked = settings.mirrorFrontCamera;
+  settingBlinkEnabled.checked = settings.blinkCycleEnabled;
+  settingDarken.value = Math.round(settings.darkenAlpha * 100);
+  settingFinger.value = Math.round((settings.fingerMargin - 1) * 100);
+  settingBlinkSens.value = Math.round(settings.blinkThreshold * 100);
+}
+
+function openSettings() {
+  populateSettingsUI();
+  settingsOverlay.hidden = false;
+}
+
+function closeSettings() {
+  settingsOverlay.hidden = true;
+}
+
+settingsBtn.addEventListener("click", openSettings);
+settingsCloseBtn.addEventListener("click", closeSettings);
+settingsOverlay.addEventListener("click", (e) => {
+  if (e.target === settingsOverlay) closeSettings();
+});
+
+settingsResetBtn.addEventListener("click", () => {
+  Object.assign(settings, DEFAULT_SETTINGS);
+  saveSettings();
+  populateSettingsUI();
+});
+
+settingMirror.addEventListener("change", () => {
+  settings.mirrorFrontCamera = settingMirror.checked;
+  saveSettings();
+});
+
+settingBlinkEnabled.addEventListener("change", () => {
+  settings.blinkCycleEnabled = settingBlinkEnabled.checked;
+  saveSettings();
+});
+
+settingDarken.addEventListener("input", () => {
+  settings.darkenAlpha = Number(settingDarken.value) / 100;
+  saveSettings();
+});
+
+settingFinger.addEventListener("input", () => {
+  settings.fingerMargin = 1 + Number(settingFinger.value) / 100;
+  saveSettings();
+});
+
+settingBlinkSens.addEventListener("input", () => {
+  settings.blinkThreshold = Number(settingBlinkSens.value) / 100;
+  saveSettings();
 });
