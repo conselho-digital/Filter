@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Filter — Janela Virtual por Gestos</title>
+  <meta name="description" content="Filtro de vídeo em tempo real controlado por gestos das mãos e piscadas de olho." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <video id="camera-feed" playsinline muted autoplay></video>
+  <canvas id="output-canvas"></canvas>
+
+  <div id="hud" hidden>
+    <span id="hud-shape">Janela: —</span>
+    <span id="hud-sep">·</span>
+    <span id="hud-filter">Filtro: —</span>
+  </div>
+
+  <div id="loading-indicator" hidden>
+    <div class="spinner"></div>
+    <p>Carregando modelos…</p>
+  </div>
+
+  <div id="error-banner" role="alert" hidden></div>
+
+  <div id="controls">
+    <button id="start-btn" type="button">Iniciar Câmera</button>
+    <button id="toggle-camera-btn" type="button" hidden>Trocar Câmera</button>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
