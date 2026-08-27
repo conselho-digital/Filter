@@ -143,6 +143,101 @@ html, body {
   color: #fff;
 }
 
+#settings-btn {
+  min-width: 48px;
+  padding: 0;
+  font-size: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+
+#settings-overlay[hidden] {
+  display: none;
+}
+
+#settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+#settings-panel {
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #1c1c1e;
+  color: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px max(20px, env(safe-area-inset-bottom, 20px));
+}
+
+@media (min-width: 700px) {
+  #settings-overlay {
+    align-items: center;
+  }
+
+  #settings-panel {
+    border-radius: 16px;
+  }
+}
+
+#settings-panel h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 14px;
+}
+
+.settings-row-slider {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.settings-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.settings-row input[type="range"] {
+  width: 100%;
+}
+
+#settings-panel button {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 16px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#settings-reset-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+#settings-close-btn {
+  background: #fff;
+  color: #111;
+}
+
 @media (min-width: 700px) {
   body {
     display: flex;
