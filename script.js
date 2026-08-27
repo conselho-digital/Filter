@@ -10,11 +10,17 @@ const HISTORY_LEN = 5;
 const HAND_TIMEOUT_MS = 500;
 const BLINK_COOLDOWN_MS = 700;
 const BLINK_THRESHOLD_GAP = 0.2;
+const FIST_COOLDOWN_MS = 800;
+const THUMBS_UP_COOLDOWN_MS = 600;
+const SHAPE_CYCLE = ["rect", "quad", "fullscreen"];
+const FRAME_EMOJIS = ["✨", "⭐", "💫", "🌟", "🎉", "❄️"];
+const FRAME_LIFETIME_MS = 3500;
 
 const SETTINGS_STORAGE_KEY = "filter-settings";
 const DEFAULT_SETTINGS = {
   mirrorFrontCamera: true,
   blinkCycleEnabled: true,
+  extraGesturesEnabled: true,
   darkenAlpha: 0.35, // 0 - 0.8
   fingerMargin: 1.1, // 1.05 - 1.3
   blinkThreshold: 0.5, // 0.3 - 0.7 (limiar de olho fechado)
@@ -62,9 +68,13 @@ const settingsCloseBtn = document.getElementById("settings-close-btn");
 const settingsResetBtn = document.getElementById("settings-reset-btn");
 const settingMirror = document.getElementById("setting-mirror");
 const settingBlinkEnabled = document.getElementById("setting-blink-enabled");
+const settingExtraGestures = document.getElementById("setting-extra-gestures");
 const settingDarken = document.getElementById("setting-darken");
 const settingFinger = document.getElementById("setting-finger");
 const settingBlinkSens = document.getElementById("setting-blink-sens");
+const lockFilterBtn = document.getElementById("lock-filter-btn");
+const addFrameBtn = document.getElementById("add-frame-btn");
+const shapeCycleBtn = document.getElementById("shape-cycle-btn");
 
 const state = {
   handLandmarker: null,
@@ -82,9 +92,18 @@ const state = {
   windowPoints: null,
 
   filterIndex: null, // null = nenhum filtro; 0-3 = índice em FILTER_NAMES
+  filterLocked: false,
 
   blinkPhase: "open",
   lastBlinkCycleAt: 0,
+
+  fistPhase: "open",
+  lastFistToggleAt: 0,
+
+  thumbsUpPhase: "open",
+  lastThumbsUpAt: 0,
+
+  floatingFrames: [],
 
   hudShapeText: "",
   hudFilterText: "",
@@ -307,6 +326,8 @@ function detectBlink(faceResult, now) {
 // ---------- resolução do filtro ----------
 
 function resolveFilter(hands, rightCount, now, blinkFired) {
+  if (state.filterLocked) return;
+
   const rightTimedOut = now - state.lastRightSeenAt > HAND_TIMEOUT_MS;
 
   if (!rightTimedOut && hands.right && rightCount >= 1 && rightCount <= 4) {
@@ -315,6 +336,96 @@ function resolveFilter(hands, rightCount, now, blinkFired) {
     state.filterIndex = state.filterIndex === null ? 0 : (state.filterIndex + 1) % 4;
   } else if (rightTimedOut) {
     state.filterIndex = null;
+  }
+}
+
+// ---------- gestos extras: punho (travar filtro) e positivo (frame) ----------
+
+function isThumbsUp(lm) {
+  const othersCurled = FINGER_TIPS_PIPS.every(([tip, pip]) => !isFingerExtended(lm, tip, pip));
+  const pointingUp = lm[4].y < lm[0].y - 0.05;
+  return isThumbExtended(lm) && othersCurled && pointingUp;
+}
+
+function detectFistToggle(hasRightHand, rightCount, now) {
+  if (!hasRightHand) {
+    state.fistPhase = "open";
+    return false;
+  }
+  const isFist = rightCount === 0;
+  let toggled = false;
+  if (state.fistPhase === "open" && isFist) {
+    state.fistPhase = "closed";
+    if (now - state.lastFistToggleAt > FIST_COOLDOWN_MS) {
+      toggled = true;
+      state.lastFistToggleAt = now;
+    }
+  } else if (state.fistPhase === "closed" && !isFist) {
+    state.fistPhase = "open";
+  }
+  return toggled;
+}
+
+function detectThumbsUp(hands, now) {
+  const detected = Boolean(
+    (hands.left && isThumbsUp(hands.left)) || (hands.right && isThumbsUp(hands.right))
+  );
+  let fired = false;
+  if (state.thumbsUpPhase === "open" && detected) {
+    state.thumbsUpPhase = "closed";
+    if (now - state.lastThumbsUpAt > THUMBS_UP_COOLDOWN_MS) {
+      fired = true;
+      state.lastThumbsUpAt = now;
+    }
+  } else if (state.thumbsUpPhase === "closed" && !detected) {
+    state.thumbsUpPhase = "open";
+  }
+  return fired;
+}
+
+function toggleFilterLock() {
+  state.filterLocked = !state.filterLocked;
+  lockFilterBtn.setAttribute("aria-pressed", String(state.filterLocked));
+  lockFilterBtn.textContent = state.filterLocked ? "🔒 Travado" : "🔓 Travar Filtro";
+}
+
+function cycleWindowShape() {
+  const currentIndex = SHAPE_CYCLE.indexOf(state.windowMode);
+  const next = SHAPE_CYCLE[(currentIndex + 1) % SHAPE_CYCLE.length];
+  state.windowMode = next;
+}
+
+function spawnFloatingFrame() {
+  const w = canvas.width || 360;
+  const h = canvas.height || 640;
+  state.floatingFrames.push({
+    emoji: FRAME_EMOJIS[Math.floor(Math.random() * FRAME_EMOJIS.length)],
+    x: w * (0.2 + Math.random() * 0.6),
+    y: h * 0.9,
+    driftX: (Math.random() - 0.5) * 40,
+    createdAt: performance.now(),
+  });
+}
+
+function drawFloatingFrames() {
+  if (state.floatingFrames.length === 0) return;
+  const now = performance.now();
+  state.floatingFrames = state.floatingFrames.filter(
+    (f) => now - f.createdAt < FRAME_LIFETIME_MS
+  );
+  for (const f of state.floatingFrames) {
+    const t = (now - f.createdAt) / FRAME_LIFETIME_MS;
+    const y = f.y - t * canvas.height * 0.7;
+    const x = f.x + f.driftX * t;
+    const opacity = t < 0.8 ? 1 : Math.max(0, (1 - t) / 0.2);
+    const size = 28 + 20 * Math.sin(t * Math.PI);
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.font = `${size}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(f.emoji, x, y);
+    ctx.restore();
   }
 }
 
@@ -386,11 +497,13 @@ function drawFrame() {
   }
 
   ctx.restore();
+  drawFloatingFrames();
 }
 
 function updateHud() {
   const shapeText = SHAPE_NAMES[state.windowMode] || "—";
-  const filterText = state.filterIndex === null ? "Nenhum" : FILTER_NAMES[state.filterIndex];
+  let filterText = state.filterIndex === null ? "Nenhum" : FILTER_NAMES[state.filterIndex];
+  if (state.filterLocked) filterText += " 🔒";
 
   if (shapeText !== state.hudShapeText) {
     hudShape.textContent = `Janela: ${shapeText}`;
@@ -427,6 +540,11 @@ function renderLoop() {
   computeWindowPolygon(hands, leftCount ?? -1, w, h, now);
   const blinkFired = detectBlink(faceResult, now);
   resolveFilter(hands, rightCount ?? -1, now, blinkFired);
+
+  if (settings.extraGesturesEnabled) {
+    if (detectFistToggle(Boolean(hands.right), rightCount ?? -1, now)) toggleFilterLock();
+    if (detectThumbsUp(hands, now)) spawnFloatingFrame();
+  }
 
   drawFrame();
   updateHud();
@@ -532,6 +650,9 @@ async function startCamera() {
     await checkMultipleCameras();
     hideError();
     hud.hidden = false;
+    lockFilterBtn.hidden = false;
+    addFrameBtn.hidden = false;
+    shapeCycleBtn.hidden = false;
     state.running = true;
     state.rafId = requestAnimationFrame(renderLoop);
   } catch (e) {
@@ -621,6 +742,7 @@ toggleCameraBtn.addEventListener("click", () => {
 function populateSettingsUI() {
   settingMirror.checked = settings.mirrorFrontCamera;
   settingBlinkEnabled.checked = settings.blinkCycleEnabled;
+  settingExtraGestures.checked = settings.extraGesturesEnabled;
   settingDarken.value = Math.round(settings.darkenAlpha * 100);
   settingFinger.value = Math.round((settings.fingerMargin - 1) * 100);
   settingBlinkSens.value = Math.round(settings.blinkThreshold * 100);
@@ -656,6 +778,15 @@ settingBlinkEnabled.addEventListener("change", () => {
   settings.blinkCycleEnabled = settingBlinkEnabled.checked;
   saveSettings();
 });
+
+settingExtraGestures.addEventListener("change", () => {
+  settings.extraGesturesEnabled = settingExtraGestures.checked;
+  saveSettings();
+});
+
+lockFilterBtn.addEventListener("click", toggleFilterLock);
+addFrameBtn.addEventListener("click", spawnFloatingFrame);
+shapeCycleBtn.addEventListener("click", cycleWindowShape);
 
 settingDarken.addEventListener("input", () => {
   settings.darkenAlpha = Number(settingDarken.value) / 100;

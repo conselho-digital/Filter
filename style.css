@@ -115,7 +115,8 @@ html, body {
   right: 0;
   z-index: 10;
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
   justify-content: center;
   align-items: center;
   padding: 0 16px;
@@ -138,9 +139,17 @@ html, body {
   background: rgba(230, 230, 230, 0.92);
 }
 
-#toggle-camera-btn {
+#toggle-camera-btn,
+#lock-filter-btn,
+#add-frame-btn,
+#shape-cycle-btn {
   background: rgba(0, 0, 0, 0.5);
   color: #fff;
+}
+
+#lock-filter-btn[aria-pressed="true"] {
+  background: #ffb020;
+  color: #111;
 }
 
 #settings-btn {

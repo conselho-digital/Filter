@@ -27,6 +27,9 @@
   <div id="controls">
     <button id="start-btn" type="button">Iniciar Câmera</button>
     <button id="toggle-camera-btn" type="button" hidden>Trocar Câmera</button>
+    <button id="lock-filter-btn" type="button" hidden aria-pressed="false">🔓 Travar Filtro</button>
+    <button id="add-frame-btn" type="button" hidden>✨ Frame</button>
+    <button id="shape-cycle-btn" type="button" hidden>▭ Formato</button>
     <button id="settings-btn" type="button" aria-label="Configurações">⚙️</button>
   </div>
 
@@ -42,6 +45,11 @@
       <label class="settings-row">
         <span>Trocar filtro ao piscar</span>
         <input type="checkbox" id="setting-blink-enabled" />
+      </label>
+
+      <label class="settings-row">
+        <span>Gestos extras (punho trava filtro, positivo cria frame)</span>
+        <input type="checkbox" id="setting-extra-gestures" />
       </label>
 
       <label class="settings-row settings-row-slider">
