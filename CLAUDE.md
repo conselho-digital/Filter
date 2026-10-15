@@ -262,3 +262,4 @@ O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de reco
 - **Dimensões:** `FLOOR_HEIGHT=0.62`, núcleo 7,4 × 5,0; cada bloco de varanda ocupa o andar inteiro; células alternam em xadrez (há células e andares sem varanda).
 - **Terreno** (`Terrain.tsx`, `src/data/terrain.ts`, `public/terrain/aerial.jpg`): foto aérea do dono girada 90° (oeste/mar em -z); `photoToWorld(u,v)=[-(v-400)*S,(u-375)*S]`, `S≈0,155` unidade/px. Chão com a foto (repetição espelhada), 35 prédios 3D extrudados (fachada em canvas, janelas acesas à noite), 499 árvores instanciadas, guindaste, praia e mar além da borda.
 - **Pendências:** resolução da foto é limitada; fossos circulares da obra só existem na textura; torre não alinhada à grade das fundações; confirmar direitos de uso da foto (manter repositório privado).
+- **Localização exata do prédio (Google Maps do dono):** 41.201353, -8.708498 (Leça da Palmeira). Usar como centro do mapa em `Location`.
