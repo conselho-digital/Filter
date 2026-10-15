@@ -264,10 +264,8 @@ O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de reco
 - **Pendências:** resolução da foto é limitada; fossos circulares da obra só existem na textura; torre não alinhada à grade das fundações; confirmar direitos de uso da foto (manter repositório privado).
 - **Localização exata do prédio (Google Maps do dono):** 41.201353, -8.708498 (Leça da Palmeira). Usar como centro do mapa em `Location`.
 
-**Pendências da revisão do terreno/torre única (Médios e Baixos):**
-- `Terrain.tsx`: `dispose` de texturas/materiais (fachada, telhado, clones por face); tirar o `push` de dentro do `useMemo`; `memo` nos filhos; telhado sem `repeat`; árvores dentro de prédios.
-- Z-fighting de areia, praça e mar com o chão (`polygonOffset`; reduzir `far`).
-- ErrorBoundary e Suspense local para `/terrain/aerial.jpg`; usar `import.meta.env.BASE_URL`.
-- Sombra 4096² atrelada a `quality` (2048 no mobile); frustum de ±55 corta prédios distantes.
-- Bordas do chão visíveis em câmera distante; estrelas com raio igual ao `maxDistance`.
-- `distanceFactor` do rótulo das unidades para a aérea a 66; constantes de câmera duplicadas em `CameraRig` e `WindowViewRig`.
+**Pendências da revisão do terreno/torre única (restantes):**
+- Telhado dos prédios sem `repeat` (textura estica nos prédios grandes); árvores caem dentro de prédios traçados.
+- Foto do terreno não é liberada (`useLoader` guarda em cache); sem LOD nas árvores.
+- Voo reto até a varanda ainda pode atravessar o núcleo (ver etapa 4).
+- Resolvido: dispose de texturas/materiais, z-fighting (polygonOffset), ErrorBoundary + Suspense da foto com `BASE_URL`, sombra 2048/4096 por tela, chão estendido, estrelas, `distanceFactor` do rótulo, constantes de câmera em `lib/cameraConsts.ts`.

@@ -22,7 +22,7 @@ export function Scene() {
       shadows={{ type: PCFShadowMap }}
       dpr={[1, 2]}
       frameloop="demand"
-      camera={{ position: [30, 26, 46], fov: 40, near: 0.1, far: 900 }}
+      camera={{ position: [30, 26, 46], fov: 40, near: 0.1, far: 700 }}
       gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}
       onPointerMissed={() => selectUnit(null)}
     >

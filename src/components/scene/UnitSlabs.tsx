@@ -69,7 +69,7 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
               depthWrite={false}
             />
             {(hovered || selected) && (
-              <Html center distanceFactor={14} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+              <Html center distanceFactor={22} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
                 <div className="glass whitespace-nowrap rounded-lg px-3 py-1.5 text-center text-sm font-medium text-white">
                   {u.id}
                   <div className="text-xs font-normal text-white/70">{STATUS_LABEL[u.status]}</div>

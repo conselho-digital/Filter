@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { Component, memo, Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useLoader } from '@react-three/fiber'
 import {
   CanvasTexture,
@@ -86,15 +86,15 @@ function roofTexture(base: string, speck: string) {
 }
 
 /** Prédio do entorno: caixa extrudada com fachada de janelas e telhado. */
-function Building({ b, wall, glow, roofFlat, roofTile, emissive }: {
+const Building = memo(function Building({ b, wall, glow, roofFlat, roofTile, night }: {
   b: BuildingRect
   wall: CanvasTexture
   glow: CanvasTexture
   roofFlat: MeshStandardMaterial
   roofTile: MeshStandardMaterial
-  emissive: MeshStandardMaterial[]
+  night: number
 }) {
-  const { mesh } = useMemo(() => {
+  const mesh = useMemo(() => {
     const width = b.w * S
     const depth = b.d * S
     const height = b.floors * FLOOR_HEIGHT + b.seg * 0.004
@@ -110,25 +110,40 @@ function Building({ b, wall, glow, roofFlat, roofTile, emissive }: {
       const e = glow.clone()
       e.repeat.copy(t.repeat)
       e.needsUpdate = true
-      const m = new MeshStandardMaterial({ map: t, roughness: 0.9, emissive: new Color('#ffffff'), emissiveMap: e, emissiveIntensity: 0 })
-      emissive.push(m)
-      return m
+      return new MeshStandardMaterial({ map: t, roughness: 0.9, emissive: new Color('#ffffff'), emissiveMap: e, emissiveIntensity: 0 })
     }
     const fx = face(depth) // faces ±x têm largura = profundidade
     const fz = face(width)
     const roof = b.roof === 'tile' ? roofTile : roofFlat
-    return { mesh: { x, z, rotY, width, depth, height, mats: [fx, fx, roof, roof, fz, fz] } }
-  }, [b, wall, glow, roofFlat, roofTile, emissive])
+    return { x, z, rotY, width, depth, height, fx, fz, mats: [fx, fx, roof, roof, fz, fz] }
+  }, [b, wall, glow, roofFlat, roofTile])
+
+  useEffect(() => {
+    mesh.fx.emissiveIntensity = night * 0.9
+    mesh.fz.emissiveIntensity = night * 0.9
+  }, [mesh, night])
+
+  // libera as texturas clonadas e os materiais da fachada
+  useEffect(
+    () => () => {
+      for (const m of [mesh.fx, mesh.fz]) {
+        m.map?.dispose()
+        m.emissiveMap?.dispose()
+        m.dispose()
+      }
+    },
+    [mesh],
+  )
 
   return (
     <mesh position={[mesh.x, mesh.height / 2, mesh.z]} rotation={[0, mesh.rotY, 0]} castShadow receiveShadow material={mesh.mats}>
       <boxGeometry args={[mesh.width, mesh.height, mesh.depth]} />
     </mesh>
   )
-}
+})
 
 /** Guindaste de obra ao lado da torre (o canteiro está em construção na foto). */
-function Crane() {
+const Crane = memo(function Crane() {
   const [x, z] = photoToWorld(335, 345)
   const yellow = '#e3a21a'
   return (
@@ -155,12 +170,12 @@ function Crane() {
       </mesh>
     </group>
   )
-}
+})
 
 const dummy = new Object3D()
 
 /** Árvores instanciadas (copa + tronco) nas posições detectadas na foto. */
-function Trees() {
+const Trees = memo(function Trees() {
   const crowns = useRef<InstancedMesh>(null)
   const trunks = useRef<InstancedMesh>(null)
   const items = useMemo(() => {
@@ -204,20 +219,60 @@ function Trees() {
       </instancedMesh>
     </>
   )
+})
+
+/** Chão liso de reserva se a foto não carregar. */
+function FallbackGround() {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 253]} receiveShadow>
+      <planeGeometry args={[1600, 700]} />
+      <meshStandardMaterial color="#8d9279" roughness={1} />
+    </mesh>
+  )
 }
+
+/** Se a foto falhar (404, rede), o resto da cena segue sem derrubar o app. */
+class PhotoBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children
+  }
+}
+
+const PHOTO_URL = PHOTO.src.replace(/^\//, import.meta.env.BASE_URL)
 
 /** Terreno realista: foto aérea no chão, prédios 3D do entorno, árvores e guindaste. */
 export function Terrain({ night }: { night: number }) {
-  const photo = useLoader(TextureLoader, PHOTO.src)
-  photo.wrapS = photo.wrapT = MirroredRepeatWrapping
-  photo.colorSpace = SRGBColorSpace
-  photo.anisotropy = 8
+  return (
+    <group>
+      <PhotoBoundary fallback={<FallbackGround />}>
+        <Suspense fallback={<FallbackGround />}>
+          <PhotoGround night={night} />
+        </Suspense>
+      </PhotoBoundary>
+      <Surroundings night={night} />
+    </group>
+  )
+}
+
+/** Chão com a foto aérea. */
+function PhotoGround({ night }: { night: number }) {
+  const photo = useLoader(TextureLoader, PHOTO_URL)
+  useLayoutEffect(() => {
+    photo.wrapS = photo.wrapT = MirroredRepeatWrapping
+    photo.colorSpace = SRGBColorSpace
+    photo.anisotropy = 8
+    photo.needsUpdate = true
+  }, [photo])
 
   // chão: UVs calculados do mapeamento foto -> mundo (a foto vira 90° e espelha nas bordas, sem emendas)
   const ground = useMemo(() => {
-    const g = new PlaneGeometry(560, 260, 28, 13)
+    const g = new PlaneGeometry(1600, 700, 8, 4)
     g.rotateX(-Math.PI / 2)
-    g.translate(0, 0, 25)
+    g.translate(0, 0, 253)
     const pos = g.attributes.position
     const uv = g.attributes.uv
     for (let i = 0; i < pos.count; i++) {
@@ -232,25 +287,35 @@ export function Terrain({ night }: { night: number }) {
   }, [])
   useLayoutEffect(() => () => ground.dispose(), [ground])
 
-  const facade = useMemo(makeFacadeTextures, [])
-  const roofFlat = useMemo(() => new MeshStandardMaterial({ map: roofTexture('#8f8b83', '#77736b'), roughness: 0.95 }), [])
-  const roofTile = useMemo(() => new MeshStandardMaterial({ map: roofTexture('#b0623f', '#8f4c30'), roughness: 0.9 }), [])
-  const emissive = useMemo<MeshStandardMaterial[]>(() => [], [])
-  useLayoutEffect(() => {
-    emissive.forEach((m) => {
-      m.emissiveIntensity = night * 0.9
-    })
-  }, [night, emissive, facade])
-
   const groundTint = useMemo(() => new Color('#ffffff').lerp(new Color('#4f5d7c'), night * 0.75), [night])
 
   return (
+    <mesh geometry={ground} receiveShadow>
+      <meshStandardMaterial map={photo} color={groundTint} roughness={1} />
+    </mesh>
+  )
+}
+
+/** Prédios do entorno, árvores e guindaste. */
+function Surroundings({ night }: { night: number }) {
+  const facade = useMemo(makeFacadeTextures, [])
+  const roofFlat = useMemo(() => new MeshStandardMaterial({ map: roofTexture('#8f8b83', '#77736b'), roughness: 0.95 }), [])
+  const roofTile = useMemo(() => new MeshStandardMaterial({ map: roofTexture('#b0623f', '#8f4c30'), roughness: 0.9 }), [])
+  useEffect(
+    () => () => {
+      facade.wall.dispose()
+      facade.glow.dispose()
+      for (const m of [roofFlat, roofTile]) {
+        m.map?.dispose()
+        m.dispose()
+      }
+    },
+    [facade, roofFlat, roofTile],
+  )
+  return (
     <group>
-      <mesh geometry={ground} receiveShadow>
-        <meshStandardMaterial map={photo} color={groundTint} roughness={1} />
-      </mesh>
       {BUILDINGS.map((b, i) => (
-        <Building key={i} b={b} wall={facade.wall} glow={facade.glow} roofFlat={roofFlat} roofTile={roofTile} emissive={emissive} />
+        <Building key={i} b={b} wall={facade.wall} glow={facade.glow} roofFlat={roofFlat} roofTile={roofTile} night={night} />
       ))}
       <Trees />
       <Crane />

@@ -6,9 +6,8 @@ import { UNITS_BY_ID } from '../../data/units'
 import { cameraState } from '../../lib/cameraState'
 import { unitWorldPosition } from '../../lib/tower'
 import { useStore } from '../../store/useStore'
+import { AERIAL_DISTANCE, AERIAL_TARGET } from '../../lib/cameraConsts'
 
-const AERIAL_TARGET = new Vector3(0, 8, 0)
-const AERIAL_DISTANCE = 66
 const UNIT_DISTANCE = 16
 const DURATION = 1.2
 

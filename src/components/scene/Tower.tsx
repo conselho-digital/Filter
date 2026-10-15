@@ -355,8 +355,8 @@ function Podium({ night }: { night: number }) {
     <group>
       {/* praça pavimentada */}
       <mesh position={[0, 0.006, 0.9]} receiveShadow>
-        <boxGeometry args={[POD_W + 1.8, 0.012, POD_D + 1.8]} />
-        <meshStandardMaterial color="#bdb6a8" roughness={1} />
+        <boxGeometry args={[POD_W + 1.8, 0.03, POD_D + 1.8]} />
+        <meshStandardMaterial color="#bdb6a8" roughness={1} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
       </mesh>
       {/* cortina de vidro do pódio (recuada atrás dos pilotis) */}
       <mesh position={[0, (BASE_HEIGHT - 0.12) / 2, 0]} castShadow receiveShadow>

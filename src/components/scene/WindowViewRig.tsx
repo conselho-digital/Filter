@@ -6,6 +6,7 @@ import { UNITS_BY_ID } from '../../data/units'
 import { cameraState } from '../../lib/cameraState'
 import { unitWindowPose } from '../../lib/tower'
 import { useStore } from '../../store/useStore'
+import { AERIAL_DISTANCE, AERIAL_TARGET } from '../../lib/cameraConsts'
 
 const WINDOW_FOV = 70
 const WINDOW_NEAR = 0.02
@@ -14,8 +15,6 @@ const MAX_YAW = 1.3 // rad de giro para cada lado, a partir da direção da vist
 const MIN_PITCH = -0.5
 const MAX_PITCH = 0.6
 const DRAG_SPEED = 0.004
-const AERIAL_TARGET = new Vector3(0, 8, 0)
-const AERIAL_DISTANCE = 66
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
 const orient = (yaw: number, pitch: number) => new Quaternion().setFromEuler(new Euler(pitch, yaw, 0, 'YXZ'))
