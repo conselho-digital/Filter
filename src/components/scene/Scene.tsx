@@ -1,0 +1,40 @@
+import { useMemo } from 'react'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
+import { ACESFilmicToneMapping, PCFShadowMap } from 'three'
+import { useStore } from '../../store/useStore'
+import { skyAt } from '../../lib/sky'
+import { Environment } from './Environment'
+import { City } from './City'
+import { Tower } from './Tower'
+
+export function Scene() {
+  const timeOfDay = useStore((s) => s.timeOfDay)
+  const sky = useMemo(() => skyAt(timeOfDay), [timeOfDay])
+
+  return (
+    <Canvas
+      shadows={{ type: PCFShadowMap }}
+      dpr={[1, 2]}
+      camera={{ position: [26, 16, 30], fov: 40, near: 0.1, far: 500 }}
+      gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}
+    >
+      <Environment sky={sky} />
+      <City night={sky.night} />
+      <Tower night={sky.night} floors={22} seed={1} />
+      <Tower position={[-9, 0, -4]} floors={17} seed={3} night={sky.night} />
+      <Tower position={[9, 0, -5]} floors={19} seed={5} night={sky.night} />
+      <OrbitControls
+        makeDefault
+        enableDamping
+        dampingFactor={0.08}
+        target={[0, 7, 0]}
+        minDistance={8}
+        maxDistance={70}
+        maxPolarAngle={Math.PI / 2 - 0.05}
+        rotateSpeed={0.6}
+        zoomSpeed={0.8}
+      />
+    </Canvas>
+  )
+}
