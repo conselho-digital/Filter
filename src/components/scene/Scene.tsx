@@ -7,10 +7,14 @@ import { skyAt } from '../../lib/sky'
 import { Environment } from './Environment'
 import { City } from './City'
 import { Tower } from './Tower'
+import { CameraRig } from './CameraRig'
+import { UNITS } from '../../data/units'
+import { MAIN_TOWER } from '../../lib/tower'
 
 export function Scene() {
   const timeOfDay = useStore((s) => s.timeOfDay)
   const sky = useMemo(() => skyAt(timeOfDay), [timeOfDay])
+  const selectUnit = useStore((s) => s.selectUnit)
 
   return (
     <Canvas
@@ -19,12 +23,14 @@ export function Scene() {
       frameloop="demand"
       camera={{ position: [26, 16, 30], fov: 40, near: 0.1, far: 500 }}
       gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}
+      onPointerMissed={() => selectUnit(null)}
     >
       <Environment sky={sky} />
       <City night={sky.night} />
-      <Tower night={sky.night} floors={22} seed={1} />
+      <Tower {...MAIN_TOWER} night={sky.night} units={UNITS} />
       <Tower position={[-9, 0, -4]} floors={17} seed={3} night={sky.night} />
       <Tower position={[9, 0, -5]} floors={19} seed={5} night={sky.night} />
+      <CameraRig />
       <OrbitControls
         makeDefault
         enableDamping

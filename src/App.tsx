@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { Scene } from './components/scene/Scene'
+import { StatusLegend } from './components/ui/StatusLegend'
 import { TimeSlider } from './components/ui/TimeSlider'
+import { UnitPanel } from './components/ui/UnitPanel'
 
 function hasWebGL() {
   try {
@@ -27,6 +29,8 @@ export default function App() {
       <Scene />
       <div className="pointer-events-none absolute inset-0">
         <TimeSlider />
+        <StatusLegend />
+        <UnitPanel />
       </div>
     </div>
   )

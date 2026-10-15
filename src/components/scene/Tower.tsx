@@ -1,13 +1,21 @@
 import { useEffect, useMemo } from 'react'
 import { ExtrudeGeometry, Shape } from 'three'
+import type { Unit } from '../../data/units'
+import {
+  CORE_DEPTH,
+  CORE_WIDTH,
+  FLOOR_HEIGHT,
+  SLAB_THICKNESS,
+  towerLevels,
+  type TowerConfig,
+} from '../../lib/tower'
+import { UnitSlabs } from './UnitSlabs'
 
-interface TowerProps {
-  position?: [number, number, number]
-  floors?: number
-  floorHeight?: number
+interface TowerProps extends Partial<TowerConfig> {
   /** 0 (dia) a 1 (noite): acende as janelas */
   night: number
-  seed?: number
+  /** unidades à venda desta torre (opcional) */
+  units?: Unit[]
 }
 
 /** Forma de laje com cantos muito arredondados (superelipse), no plano XY. */
@@ -26,40 +34,45 @@ function slabShape(w: number, d: number, n = 4.5, steps = 48) {
 }
 
 /** Torre procedural com lajes onduladas e varandas, no estilo da referência. */
-export function Tower({ position = [0, 0, 0], floors = 22, floorHeight = 0.62, night, seed = 1 }: TowerProps) {
+export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, units }: TowerProps) {
   const { slab, core } = useMemo(() => {
-    const slabGeo = new ExtrudeGeometry(slabShape(5.2, 3.8), { depth: 0.12, bevelEnabled: false })
+    const slabGeo = new ExtrudeGeometry(slabShape(5.2, 3.8), { depth: SLAB_THICKNESS, bevelEnabled: false })
     slabGeo.rotateX(-Math.PI / 2)
-    const coreGeo = new ExtrudeGeometry(slabShape(4.4, 3.1), { depth: floorHeight - 0.12, bevelEnabled: false })
+    const coreGeo = new ExtrudeGeometry(slabShape(CORE_WIDTH, CORE_DEPTH), {
+      depth: FLOOR_HEIGHT - SLAB_THICKNESS,
+      bevelEnabled: false,
+    })
     coreGeo.rotateX(-Math.PI / 2)
     return { slab: slabGeo, core: coreGeo }
-  }, [floorHeight])
+  }, [])
 
   useEffect(() => () => {
     slab.dispose()
     core.dispose()
   }, [slab, core])
 
-  const levels = useMemo(
-    () =>
-      Array.from({ length: floors }, (_, i) => ({
-        y: i * floorHeight,
-        rot: Math.sin(i * 0.55 + seed) * 0.16,
-        dx: Math.sin(i * 0.9 + seed * 2) * 0.22,
-        dz: Math.cos(i * 0.7 + seed) * 0.18,
-        scale: 1 - Math.max(0, i - floors * 0.7) * 0.012,
-      })),
-    [floors, floorHeight, seed],
-  )
+  const levels = useMemo(() => towerLevels(floors, seed), [floors, seed])
+
+  const unitsByFloor = useMemo(() => {
+    const map = new Map<number, Unit[]>()
+    for (const u of units ?? []) map.set(u.floor, [...(map.get(u.floor) ?? []), u])
+    return map
+  }, [units])
 
   return (
     <group position={position}>
       {levels.map((l, i) => (
         <group key={i} position={[l.dx, l.y, l.dz]} rotation={[0, l.rot, 0]} scale={[l.scale, 1, l.scale]}>
           <mesh geometry={slab} castShadow receiveShadow>
-            <meshStandardMaterial color="#e8edf3" roughness={0.55} metalness={0.05} emissive="#8fa4c8" emissiveIntensity={night * 0.12} />
+            <meshStandardMaterial
+              color="#e8edf3"
+              roughness={0.55}
+              metalness={0.05}
+              emissive="#8fa4c8"
+              emissiveIntensity={night * 0.12}
+            />
           </mesh>
-          <mesh geometry={core} position={[0, 0.12, 0]} castShadow>
+          <mesh geometry={core} position={[0, SLAB_THICKNESS, 0]} castShadow>
             <meshStandardMaterial
               color="#7fa6cc"
               roughness={0.25}
@@ -68,10 +81,11 @@ export function Tower({ position = [0, 0, 0], floors = 22, floorHeight = 0.62, n
               emissiveIntensity={night * 0.9}
             />
           </mesh>
+          {unitsByFloor.has(i + 1) && <UnitSlabs units={unitsByFloor.get(i + 1)!} />}
         </group>
       ))}
       {/* cobertura */}
-      <mesh position={[0, floors * floorHeight + 0.15, 0]} castShadow>
+      <mesh position={[0, floors * FLOOR_HEIGHT + 0.15, 0]} castShadow>
         <boxGeometry args={[2.6, 0.3, 1.8]} />
         <meshStandardMaterial color="#cfd6de" roughness={0.6} />
       </mesh>
