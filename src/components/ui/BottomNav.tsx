@@ -18,7 +18,7 @@ export function BottomNav() {
   const hasUnit = useStore((s) => s.selectedUnitId !== null)
 
   // na planta e na vista da varanda o menu sai de cena
-  if (viewMode === 'windowView' || viewMode === 'blueprint') return null
+  if (viewMode === 'windowView' || viewMode === 'blueprint' || viewMode === 'plan3d') return null
 
   return (
     <nav

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Apartment3DView } from './components/apartment/Apartment3DView'
 import { BlueprintView } from './components/blueprint/BlueprintView'
 import { Scene } from './components/scene/Scene'
 import { useIdleReset } from './hooks/useIdleReset'
@@ -40,6 +41,7 @@ export default function App() {
         <Sections />
         <BottomNav />
         <BlueprintView />
+        <Apartment3DView />
         <WindowViewBar />
       </div>
     </div>

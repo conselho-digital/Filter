@@ -246,3 +246,12 @@ Fonte: página do projeto em vizta.pt e brochura em PDF (dados públicos, sujeit
 **Regras de interface definidas pelo dono do projeto:**
 - Cores de status das unidades (disponível, reservado, vendido) **só aparecem quando o botão de marcar correspondente está ativo**; por padrão a fachada fica limpa e as unidades continuam clicáveis.
 - As varandas formam um **tabuleiro de xadrez** de blocos em balanço (ver especificação do prédio acima); não são faixas contínuas.
+
+## 🛋️ Apartamento Mobiliado em 3D (recorte isométrico)
+
+O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de recorte isométrico 3D como referência de estilo. Implementado em `src/lib/apartment3d.ts` (gerador) e `src/components/apartment/Apartment3DView.tsx` (cena), com o botão **"Apartamento em 3D"** no painel da unidade.
+
+- **Gerado a partir da planta da unidade** (`buildFloorPlan`), então funciona para T1, T2 e T3: paredes (fundos e lateral direita altas, lateral esquerda e divisórias em corte, portas), fachada de vidro com montantes finos, pisos de madeira com textura de tábuas (canvas, sem arquivo externo), deck da varanda, laje-base e mar à frente.
+- **Mobília procedural por cômodo:** sala (TV, sofá em L, mesa de centro, tapete, jantar com aparador), cozinha aberta (bancadas, ilha com banquetas, geladeira), serviço, suíte e quartos (cama, criado-mudo, guarda-roupa, mesa de estudo), banho (bancada, vaso, box de vidro) e varanda (lounge, mesa, bananeiras).
+- **Controles:** arrastar para girar, roda e pinça para zoom, botão de etiquetas (nomes e medidas dos cômodos), recentralizar e Esc para voltar.
+- **Próximo passo:** o dono enviará a planta mobiliada das outras tipologias; trocar os móveis procedurais por modelos 3D (GLB) quando existirem e ajustar a disposição dos móveis a cada planta enviada.

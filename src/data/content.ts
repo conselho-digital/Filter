@@ -52,4 +52,5 @@ export const GALLERY: GalleryImage[] = [
   { id: 'torre', src: '/gallery/torre.jpg', title: 'A torre', alt: 'Fachada da torre principal com os apartamentos' },
   { id: 'varanda-dia', src: '/gallery/varanda-dia.jpg', title: 'Varanda, vista para o mar', alt: 'Vista do mar e da praia a partir da varanda, durante o dia' },
   { id: 'torre-poente', src: '/gallery/torre-poente.jpg', title: 'A torre, pôr do sol', alt: 'Fachada da torre com os blocos de varanda ao pôr do sol' },
+  { id: 'apartamento-t3-3d', src: '/gallery/apartamento-t3-3d.jpg', title: 'Apartamento T3 mobiliado (3D)', alt: 'Recorte isométrico em 3D do apartamento T3 mobiliado, com varanda para o mar, sala, cozinha, suíte e dois quartos' },
 ]

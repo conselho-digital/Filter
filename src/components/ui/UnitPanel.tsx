@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import {
   AppWindow,
+  Box,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -65,6 +66,7 @@ export function UnitPanel() {
   const openBlueprint = useStore((s) => s.openBlueprint)
   const requestPrint = useStore((s) => s.requestPrint)
   const openWindowView = useStore((s) => s.openWindowView)
+  const openPlan3d = useStore((s) => s.openPlan3d)
   const compareIds = useStore((s) => s.compareIds)
   const toggleCompare = useStore((s) => s.toggleCompare)
   const favoriteIds = useStore((s) => s.favoriteIds)
@@ -158,6 +160,9 @@ export function UnitPanel() {
       <div className="flex flex-col gap-2">
         <Action icon={<AppWindow size={20} />} onClick={openWindowView}>
           Window View
+        </Action>
+        <Action icon={<Box size={20} />} onClick={openPlan3d} active={viewMode === 'plan3d'}>
+          Apartamento em 3D
         </Action>
         <Action icon={<FileText size={20} />} onClick={openBlueprint} active={viewMode === 'blueprint'}>
           Planta do apartamento

@@ -6,7 +6,7 @@ export type Section = 'apartments' | 'compare' | 'location' | 'gallery' | 'highl
 
 export type WindowViewPreset = 'view1' | 'view2'
 
-export type ViewMode = 'aerial' | 'tower' | 'unit' | 'blueprint' | 'windowView'
+export type ViewMode = 'aerial' | 'tower' | 'unit' | 'blueprint' | 'plan3d' | 'windowView'
 
 interface AppState {
   viewMode: ViewMode
@@ -33,6 +33,8 @@ interface AppState {
   setHoveredUnit: (id: string | null) => void
   togglePrice: (id: string) => void
   openBlueprint: () => void
+  openPlan3d: () => void
+  closePlan3d: () => void
   openWindowView: () => void
   setFilters: (patch: Partial<Filters>) => void
   resetFilters: () => void
@@ -84,7 +86,7 @@ export const useStore = create<AppState>((set, get) => ({
     }
     // fechar a unidade volta à maquete, mas não tira o usuário da planta ou da vista da varanda
     set((s) => {
-      const leaving = s.viewMode === 'unit' || s.viewMode === 'tower' || s.viewMode === 'blueprint'
+      const leaving = s.viewMode === 'unit' || s.viewMode === 'tower' || s.viewMode === 'blueprint' || s.viewMode === 'plan3d'
       return {
         selectedUnitId: leaving ? null : s.selectedUnitId,
         hoveredUnitId: null,
@@ -147,6 +149,8 @@ export const useStore = create<AppState>((set, get) => ({
     set((s) => (s.selectedUnitId ? { viewMode: 'windowView', windowViewPreset: 'view1', hoveredUnitId: null, section: null } : {})),
   closeWindowView: () => set((s) => (s.viewMode === 'windowView' ? { viewMode: 'unit' } : {})),
   setWindowViewPreset: (windowViewPreset) => set((s) => (s.viewMode === 'windowView' ? { windowViewPreset } : {})),
+  openPlan3d: () => set((s) => (s.selectedUnitId ? { viewMode: 'plan3d', section: null } : {})),
+  closePlan3d: () => set((s) => (s.viewMode === 'plan3d' ? { viewMode: 'unit' } : {})),
   openBlueprint: () => set((s) => (s.selectedUnitId ? { viewMode: 'blueprint', section: null } : {})),
   closeBlueprint: () => set((s) => (s.viewMode === 'blueprint' ? { viewMode: 'unit' } : {})),
   toggleCompare: (id) => {
