@@ -13,6 +13,8 @@ interface AppState {
   priceShownIds: string[]
   compareIds: string[]
   favoriteIds: string[]
+  /** pedido de impressão aguardando a planta montar */
+  printRequested: boolean
   setViewMode: (mode: ViewMode) => void
   setTimeOfDay: (t: number) => void
   selectUnit: (id: string | null) => void
@@ -21,6 +23,10 @@ interface AppState {
   togglePrice: (id: string) => void
   openBlueprint: () => void
   closeBlueprint: () => void
+  requestPrint: () => void
+  clearPrintRequest: () => void
+  /** zera tudo que é do cliente (favoritos, comparação, preços, seleção) para o próximo visitante */
+  resetSession: () => void
   toggleCompare: (id: string) => void
   toggleFavorite: (id: string) => void
 }
@@ -37,12 +43,15 @@ export const useStore = create<AppState>((set, get) => ({
   priceShownIds: [],
   compareIds: [],
   favoriteIds: [],
+  printRequested: false,
   setViewMode: (viewMode) =>
-    set(
-      viewMode === 'aerial' || viewMode === 'tower'
-        ? { viewMode, selectedUnitId: null, hoveredUnitId: null, priceShownIds: [] }
-        : { viewMode },
-    ),
+    set((s) => {
+      if (viewMode === 'aerial' || viewMode === 'tower') {
+        return { viewMode, selectedUnitId: null, hoveredUnitId: null, priceShownIds: [] }
+      }
+      // planta, unidade e vista da varanda só fazem sentido com uma unidade escolhida
+      return s.selectedUnitId ? { viewMode } : {}
+    }),
   setTimeOfDay: (t) => set({ timeOfDay: Math.min(1, Math.max(0, t)) }),
   selectUnit: (id) => {
     if (id && !UNITS_BY_ID.has(id)) return
@@ -51,12 +60,16 @@ export const useStore = create<AppState>((set, get) => ({
       return
     }
     // fechar a unidade volta à maquete, mas não tira o usuário da planta ou da vista da varanda
-    set((s) => ({
-      selectedUnitId: s.viewMode === 'unit' || s.viewMode === 'tower' ? null : s.selectedUnitId,
-      hoveredUnitId: null,
-      viewMode: s.viewMode === 'unit' || s.viewMode === 'tower' ? 'aerial' : s.viewMode,
-      priceShownIds: s.viewMode === 'unit' || s.viewMode === 'tower' ? [] : s.priceShownIds,
-    }))
+    set((s) => {
+      const leaving = s.viewMode === 'unit' || s.viewMode === 'tower' || s.viewMode === 'blueprint'
+      return {
+        selectedUnitId: leaving ? null : s.selectedUnitId,
+        hoveredUnitId: null,
+        viewMode: leaving ? 'aerial' : s.viewMode,
+        priceShownIds: leaving ? [] : s.priceShownIds,
+        printRequested: false,
+      }
+    })
   },
   stepUnit: (delta) => {
     const { selectedUnitId } = get()
@@ -72,6 +85,19 @@ export const useStore = create<AppState>((set, get) => ({
         ? s.priceShownIds.filter((x) => x !== id)
         : [...s.priceShownIds, id],
     })),
+  requestPrint: () =>
+    set((s) => (s.selectedUnitId ? { viewMode: 'blueprint', printRequested: true } : {})),
+  clearPrintRequest: () => set({ printRequested: false }),
+  resetSession: () =>
+    set({
+      viewMode: 'aerial',
+      selectedUnitId: null,
+      hoveredUnitId: null,
+      priceShownIds: [],
+      compareIds: [],
+      favoriteIds: [],
+      printRequested: false,
+    }),
   openBlueprint: () => set((s) => (s.selectedUnitId ? { viewMode: 'blueprint' } : {})),
   closeBlueprint: () => set((s) => (s.viewMode === 'blueprint' ? { viewMode: 'unit' } : {})),
   toggleCompare: (id) => {

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { BlueprintView } from './components/blueprint/BlueprintView'
 import { Scene } from './components/scene/Scene'
+import { useIdleReset } from './hooks/useIdleReset'
 import { StatusLegend } from './components/ui/StatusLegend'
 import { TimeSlider } from './components/ui/TimeSlider'
 import { UnitPanel } from './components/ui/UnitPanel'
@@ -16,6 +17,7 @@ function hasWebGL() {
 
 export default function App() {
   const webgl = useMemo(hasWebGL, [])
+  useIdleReset()
 
   if (!webgl) {
     return (

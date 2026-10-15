@@ -188,3 +188,11 @@ Regras:
 - Foco gerenciado no painel e alternativa de teclado/lista para escolher unidades.
 - Névoa e céu com tons diferentes no horizonte; estrelas com fade; carregar a fonte (Inter/Montserrat).
 - Reset de sessão por inatividade no modo totem.
+
+**Pendências da etapa 3:**
+- Planta: proporções dos quartos (limitar largura, mais de um banheiro), separar varanda da área privativa e botão de ajuste de pan por ponto de pinça.
+- Diálogo da planta: `inert` no fundo e armadilha de foco; `key` por unidade para evitar o quadro com pan antigo.
+- Botões desabilitados: texto "em breve" com pelo menos 12 px e `aria-disabled` em vez de `disabled`.
+- `stepUnit` ignora filtros (ajustar na etapa 5) e mantém preços revelados ao navegar.
+- Impressão no quiosque: `--kiosk-printing` com impressora fixa ou PDF gerado no servidor; imprimir preço só por rota dedicada, nunca dentro de `.print-area`.
+- Enviar planta e Agendar/Contato: validação no servidor, rate limit, anti-spam, sem dados pessoais em logs, aviso de privacidade e consentimento (LGPD), chaves só no servidor.

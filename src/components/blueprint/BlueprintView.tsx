@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Minus, Plus, X } from 'lucide-react'
+import { Maximize2, Minus, Plus, X } from 'lucide-react'
 import { UNITS_BY_ID, UNITS_PER_FLOOR } from '../../data/units'
 import { buildFloorPlan } from '../../lib/floorplan'
 import { formatArea } from '../../lib/status'
@@ -9,6 +9,7 @@ const SCALE = 48 // px por metro
 const PAD = 70
 const MIN_K = 0.6
 const MAX_K = 4
+const PAN_LIMIT = 700 // px de deslocamento máximo por unidade de zoom
 
 const fmt = (n: number) => n.toFixed(1).replace('.', ',')
 
@@ -17,6 +18,8 @@ export function BlueprintView() {
   const viewMode = useStore((s) => s.viewMode)
   const selectedId = useStore((s) => s.selectedUnitId)
   const closeBlueprint = useStore((s) => s.closeBlueprint)
+  const printRequested = useStore((s) => s.printRequested)
+  const clearPrintRequest = useStore((s) => s.clearPrintRequest)
   const unit = selectedId ? UNITS_BY_ID.get(selectedId) : undefined
   const plan = useMemo(() => (unit ? buildFloorPlan(unit) : null), [unit])
 
@@ -26,12 +29,37 @@ export function BlueprintView() {
   const closeRef = useRef<HTMLButtonElement>(null)
   const open = viewMode === 'blueprint' && !!unit && !!plan
 
-  // ao abrir (ou trocar de unidade) volta ao enquadramento inicial e foca o botão de voltar
+  // ao abrir (ou trocar de unidade) volta ao enquadramento inicial e descarta gestos antigos
+  useEffect(() => {
+    pointers.current.clear()
+    pinch.current = null
+    if (open) setView({ x: 0, y: 0, k: 1 })
+  }, [open, selectedId])
+
+  // foco no botão de voltar só ao abrir; ao fechar, devolve o foco a quem abriu
   useEffect(() => {
     if (!open) return
-    setView({ x: 0, y: 0, k: 1 })
+    const opener = document.activeElement as HTMLElement | null
     closeRef.current?.focus()
-  }, [open, selectedId])
+    return () => opener?.focus?.()
+  }, [open])
+
+  // impressão pedida: espera a planta montar e o enquadramento voltar ao inicial
+  useEffect(() => {
+    if (!open || !printRequested) return
+    setView({ x: 0, y: 0, k: 1 })
+    let raf2 = 0
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        clearPrintRequest()
+        window.print()
+      })
+    })
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+    }
+  }, [open, printRequested, clearPrintRequest])
 
   useEffect(() => {
     if (!open) return
@@ -49,7 +77,14 @@ export function BlueprintView() {
   const zoom = (factor: number) =>
     setView((v) => ({ ...v, k: Math.min(MAX_K, Math.max(MIN_K, v.k * factor)) }))
 
+  const clampPan = (x: number, y: number, k: number) => {
+    const limit = PAN_LIMIT * k
+    return { x: Math.min(limit, Math.max(-limit, x)), y: Math.min(limit, Math.max(-limit, y)) }
+  }
+
   const onPointerDown = (e: React.PointerEvent) => {
+    // gestos de planta não começam em cima dos botões (senão a captura engole o clique)
+    if ((e.target as HTMLElement).closest('button')) return
     e.currentTarget.setPointerCapture(e.pointerId)
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     pinch.current = null
@@ -64,7 +99,7 @@ export function BlueprintView() {
       if (pinch.current) zoom(d / pinch.current)
       pinch.current = d
     } else if (pts.length === 1) {
-      setView((v) => ({ ...v, x: v.x + e.clientX - prev.x, y: v.y + e.clientY - prev.y }))
+      setView((v) => ({ ...v, ...clampPan(v.x + e.clientX - prev.x, v.y + e.clientY - prev.y, v.k) }))
     }
   }
   const onPointerUp = (e: React.PointerEvent) => {
@@ -90,7 +125,7 @@ export function BlueprintView() {
           </p>
           <h2 className="mt-1 text-2xl font-light uppercase tracking-[0.15em]">Apartamento {unit.id}</h2>
           <p className="mt-1 text-sm text-[#0a0f1d]/60">
-            {formatArea(unit.area)} · {unit.bedrooms} {unit.bedrooms === 1 ? 'quarto' : 'quartos'} · {unit.orientation}
+            área total {formatArea(unit.area)} · {unit.bedrooms} {unit.bedrooms === 1 ? 'quarto' : 'quartos'} · {unit.orientation}
           </p>
         </div>
         <button ref={closeRef} type="button" aria-label="Voltar à maquete" className={btn} onClick={closeBlueprint}>
@@ -105,6 +140,7 @@ export function BlueprintView() {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onLostPointerCapture={onPointerUp}
       >
         <svg
           viewBox={`0 0 ${vbW} ${vbH}`}
@@ -172,7 +208,7 @@ export function BlueprintView() {
         </svg>
 
         {/* mini-planta do pavimento */}
-        <figure className="absolute bottom-4 left-4 rounded-xl bg-white/90 p-3 shadow-md" aria-label={`Posição no pavimento ${unit.floor}`}>
+        <figure role="group" className="absolute bottom-4 left-4 rounded-xl bg-white/90 p-3 shadow-md" aria-label={`Posição no pavimento ${unit.floor}`}>
           <svg width={150} height={44} viewBox="0 0 150 44" aria-hidden>
             {floorUnits.map((i) => (
               <rect
@@ -197,6 +233,9 @@ export function BlueprintView() {
           </button>
           <button type="button" aria-label="Afastar planta" className={btn} onClick={() => zoom(1 / 1.25)}>
             <Minus size={22} />
+          </button>
+          <button type="button" aria-label="Centralizar planta" className={btn} onClick={() => setView({ x: 0, y: 0, k: 1 })}>
+            <Maximize2 size={20} />
           </button>
         </div>
       </div>

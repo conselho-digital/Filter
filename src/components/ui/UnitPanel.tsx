@@ -63,6 +63,7 @@ export function UnitPanel() {
   const togglePrice = useStore((s) => s.togglePrice)
   const viewMode = useStore((s) => s.viewMode)
   const openBlueprint = useStore((s) => s.openBlueprint)
+  const requestPrint = useStore((s) => s.requestPrint)
   const compareIds = useStore((s) => s.compareIds)
   const toggleCompare = useStore((s) => s.toggleCompare)
   const favoriteIds = useStore((s) => s.favoriteIds)
@@ -86,11 +87,6 @@ export function UnitPanel() {
   const comparing = compareIds.includes(unit.id)
   const compareFull = !comparing && compareIds.length >= 4
 
-  const printBlueprint = () => {
-    openBlueprint()
-    // espera a planta montar antes de abrir a janela de impressão
-    window.setTimeout(() => window.print(), 300)
-  }
 
   const facts: [string, string][] = [
     ['Área', formatArea(unit.area)],
@@ -164,7 +160,7 @@ export function UnitPanel() {
         <Action icon={<FileText size={20} />} onClick={openBlueprint} active={viewMode === 'blueprint'}>
           Planta do apartamento
         </Action>
-        <Action icon={<Printer size={20} />} onClick={printBlueprint}>
+        <Action icon={<Printer size={20} />} onClick={requestPrint}>
           Imprimir planta
         </Action>
         <Action icon={<Send size={20} />} disabled hint="em breve">
