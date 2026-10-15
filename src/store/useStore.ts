@@ -11,13 +11,23 @@ interface AppState {
   hoveredUnitId: string | null
   /** unidades cujo preço o corretor já revelou */
   priceShownIds: string[]
+  compareIds: string[]
+  favoriteIds: string[]
   setViewMode: (mode: ViewMode) => void
   setTimeOfDay: (t: number) => void
   selectUnit: (id: string | null) => void
   stepUnit: (delta: 1 | -1) => void
   setHoveredUnit: (id: string | null) => void
   togglePrice: (id: string) => void
+  openBlueprint: () => void
+  closeBlueprint: () => void
+  toggleCompare: (id: string) => void
+  toggleFavorite: (id: string) => void
 }
+
+const MAX_COMPARE = 4
+const toggleIn = (list: string[], id: string) =>
+  list.includes(id) ? list.filter((x) => x !== id) : [...list, id]
 
 export const useStore = create<AppState>((set, get) => ({
   viewMode: 'aerial',
@@ -25,6 +35,8 @@ export const useStore = create<AppState>((set, get) => ({
   selectedUnitId: null,
   hoveredUnitId: null,
   priceShownIds: [],
+  compareIds: [],
+  favoriteIds: [],
   setViewMode: (viewMode) =>
     set(
       viewMode === 'aerial' || viewMode === 'tower'
@@ -60,4 +72,18 @@ export const useStore = create<AppState>((set, get) => ({
         ? s.priceShownIds.filter((x) => x !== id)
         : [...s.priceShownIds, id],
     })),
+  openBlueprint: () => set((s) => (s.selectedUnitId ? { viewMode: 'blueprint' } : {})),
+  closeBlueprint: () => set((s) => (s.viewMode === 'blueprint' ? { viewMode: 'unit' } : {})),
+  toggleCompare: (id) => {
+    if (!UNITS_BY_ID.has(id)) return
+    set((s) =>
+      s.compareIds.includes(id) || s.compareIds.length < MAX_COMPARE
+        ? { compareIds: toggleIn(s.compareIds, id) }
+        : {},
+    )
+  },
+  toggleFavorite: (id) => {
+    if (!UNITS_BY_ID.has(id)) return
+    set((s) => ({ favoriteIds: toggleIn(s.favoriteIds, id) }))
+  },
 }))

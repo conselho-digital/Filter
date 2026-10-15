@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { BlueprintView } from './components/blueprint/BlueprintView'
 import { Scene } from './components/scene/Scene'
 import { StatusLegend } from './components/ui/StatusLegend'
 import { TimeSlider } from './components/ui/TimeSlider'
@@ -31,6 +32,7 @@ export default function App() {
         <TimeSlider />
         <StatusLegend />
         <UnitPanel />
+        <BlueprintView />
       </div>
     </div>
   )
