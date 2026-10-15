@@ -38,13 +38,18 @@ export function Environment({ sky }: { sky: SkyState }) {
       {sky.night > 0.5 && <Stars radius={150} depth={40} count={2500} factor={4} fade />}
 
       {/* terreno */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[400, 220]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 35]} receiveShadow>
+        <planeGeometry args={[400, 150]} />
         <meshStandardMaterial color="#8a9a78" roughness={1} emissive="#8a9a78" emissiveIntensity={sky.night * 0.1} />
       </mesh>
+      {/* faixa de areia */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, -43]}>
+        <planeGeometry args={[400, 6]} />
+        <meshStandardMaterial color="#d9c9a0" roughness={1} />
+      </mesh>
       {/* mar */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -170]}>
-        <planeGeometry args={[800, 120]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -140]}>
+        <planeGeometry args={[800, 200]} />
         <meshStandardMaterial color={sky.seaColor} roughness={0.15} metalness={0.4} />
       </mesh>
     </>

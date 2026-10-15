@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { UNITS, UNITS_BY_ID } from '../data/units'
 
+export type WindowViewPreset = 'view1' | 'view2'
+
 export type ViewMode = 'aerial' | 'tower' | 'unit' | 'blueprint' | 'windowView'
 
 interface AppState {
@@ -15,6 +17,7 @@ interface AppState {
   favoriteIds: string[]
   /** pedido de impressão aguardando a planta montar */
   printRequested: boolean
+  windowViewPreset: WindowViewPreset
   setViewMode: (mode: ViewMode) => void
   setTimeOfDay: (t: number) => void
   selectUnit: (id: string | null) => void
@@ -22,6 +25,9 @@ interface AppState {
   setHoveredUnit: (id: string | null) => void
   togglePrice: (id: string) => void
   openBlueprint: () => void
+  openWindowView: () => void
+  closeWindowView: () => void
+  setWindowViewPreset: (p: WindowViewPreset) => void
   closeBlueprint: () => void
   requestPrint: () => void
   clearPrintRequest: () => void
@@ -44,6 +50,7 @@ export const useStore = create<AppState>((set, get) => ({
   compareIds: [],
   favoriteIds: [],
   printRequested: false,
+  windowViewPreset: 'view1',
   setViewMode: (viewMode) =>
     set((s) => {
       if (viewMode === 'aerial' || viewMode === 'tower') {
@@ -97,7 +104,12 @@ export const useStore = create<AppState>((set, get) => ({
       compareIds: [],
       favoriteIds: [],
       printRequested: false,
+      windowViewPreset: 'view1',
     }),
+  openWindowView: () =>
+    set((s) => (s.selectedUnitId ? { viewMode: 'windowView', windowViewPreset: 'view1', hoveredUnitId: null } : {})),
+  closeWindowView: () => set((s) => (s.viewMode === 'windowView' ? { viewMode: 'unit' } : {})),
+  setWindowViewPreset: (windowViewPreset) => set((s) => (s.viewMode === 'windowView' ? { windowViewPreset } : {})),
   openBlueprint: () => set((s) => (s.selectedUnitId ? { viewMode: 'blueprint' } : {})),
   closeBlueprint: () => set((s) => (s.viewMode === 'blueprint' ? { viewMode: 'unit' } : {})),
   toggleCompare: (id) => {

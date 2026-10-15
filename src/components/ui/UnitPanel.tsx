@@ -64,6 +64,7 @@ export function UnitPanel() {
   const viewMode = useStore((s) => s.viewMode)
   const openBlueprint = useStore((s) => s.openBlueprint)
   const requestPrint = useStore((s) => s.requestPrint)
+  const openWindowView = useStore((s) => s.openWindowView)
   const compareIds = useStore((s) => s.compareIds)
   const toggleCompare = useStore((s) => s.toggleCompare)
   const favoriteIds = useStore((s) => s.favoriteIds)
@@ -75,13 +76,14 @@ export function UnitPanel() {
     if (!selectedId) return
     const onKey = (e: KeyboardEvent) => {
       // na planta, o Esc fecha só a planta (tratado por ela)
-      if (e.key === 'Escape' && viewMode !== 'blueprint') selectUnit(null)
+      if (e.key === 'Escape' && viewMode === 'unit') selectUnit(null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [selectedId, selectUnit, viewMode])
 
-  if (!unit) return null
+  // na vista da varanda o painel sai de cena (a barra inferior assume)
+  if (!unit || viewMode === 'windowView') return null
   const priceShown = priceShownIds.includes(unit.id)
   const favorite = favoriteIds.includes(unit.id)
   const comparing = compareIds.includes(unit.id)
@@ -154,7 +156,7 @@ export function UnitPanel() {
       </button>
 
       <div className="flex flex-col gap-2">
-        <Action icon={<AppWindow size={20} />} disabled hint="em breve">
+        <Action icon={<AppWindow size={20} />} onClick={openWindowView}>
           Window View
         </Action>
         <Action icon={<FileText size={20} />} onClick={openBlueprint} active={viewMode === 'blueprint'}>

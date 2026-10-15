@@ -54,3 +54,42 @@ export function unitWorldPosition(unit: Unit, tower: TowerConfig = MAIN_TOWER): 
     tower.position[2] + level.dz + z,
   ]
 }
+
+export type WindowViewId = 'view1' | 'view2'
+
+export interface WindowPose {
+  position: [number, number, number]
+  /** giro em Y (rad): 0 olha para -z; o forward é (-sin, -cos) */
+  yaw: number
+}
+
+/** Direção da vista principal de cada orientação, no espaço local do andar. */
+const ORIENTATION_DIR: Record<string, [number, number]> = {
+  Mar: [0, -1],
+  Sul: [0, 1],
+  Oeste: [-1, 0],
+  Leste: [1, 0],
+}
+
+/** Ponto de vista na varanda (olhos da unidade) e direção do olhar, em coordenadas do mundo. */
+export function unitWindowPose(unit: Unit, view: WindowViewId, tower: TowerConfig = MAIN_TOWER): WindowPose {
+  const level = towerLevels(tower.floors, tower.seed)[unit.floor - 1]
+  const [dx, dz] = ORIENTATION_DIR[unit.orientation] ?? [0, -1]
+  // fica logo além da fachada, ainda sob a laje de cima (que serve de teto da varanda)
+  const lx = dx !== 0 ? dx * (CORE_WIDTH / 2 + 0.3) : unitLocalX(unit.slot)
+  const lz = dz !== 0 ? dz * (CORE_DEPTH / 2 + 0.2) : 0
+  const sx = lx * level.scale
+  const sz = lz * level.scale
+  const cos = Math.cos(level.rot)
+  const sin = Math.sin(level.rot)
+  const y = tower.position[1] + level.y + SLAB_THICKNESS + (FLOOR_HEIGHT - SLAB_THICKNESS) * 0.55
+  const baseYaw = Math.atan2(-dx, -dz) + level.rot
+  return {
+    position: [
+      tower.position[0] + level.dx + sx * cos + sz * sin,
+      y,
+      tower.position[2] + level.dz - sx * sin + sz * cos,
+    ],
+    yaw: view === 'view2' ? baseYaw + 0.95 : baseYaw,
+  }
+}

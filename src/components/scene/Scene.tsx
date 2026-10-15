@@ -8,6 +8,7 @@ import { Environment } from './Environment'
 import { City } from './City'
 import { Tower } from './Tower'
 import { CameraRig } from './CameraRig'
+import { WindowViewRig } from './WindowViewRig'
 import { UNITS } from '../../data/units'
 import { MAIN_TOWER } from '../../lib/tower'
 
@@ -31,6 +32,7 @@ export function Scene() {
       <Tower position={[-9, 0, -4]} floors={17} seed={3} night={sky.night} />
       <Tower position={[9, 0, -5]} floors={19} seed={5} night={sky.night} />
       <CameraRig />
+      <WindowViewRig />
       <OrbitControls
         makeDefault
         enableDamping

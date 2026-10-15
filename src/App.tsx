@@ -5,6 +5,7 @@ import { useIdleReset } from './hooks/useIdleReset'
 import { StatusLegend } from './components/ui/StatusLegend'
 import { TimeSlider } from './components/ui/TimeSlider'
 import { UnitPanel } from './components/ui/UnitPanel'
+import { WindowViewBar } from './components/ui/WindowViewBar'
 
 function hasWebGL() {
   try {
@@ -35,6 +36,7 @@ export default function App() {
         <StatusLegend />
         <UnitPanel />
         <BlueprintView />
+        <WindowViewBar />
       </div>
     </div>
   )

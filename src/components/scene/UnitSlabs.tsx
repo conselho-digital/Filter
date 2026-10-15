@@ -16,6 +16,10 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
   const hoveredId = useStore((s) => s.hoveredUnitId)
   const selectUnit = useStore((s) => s.selectUnit)
   const setHovered = useStore((s) => s.setHoveredUnit)
+  const viewMode = useStore((s) => s.viewMode)
+
+  // na vista da varanda só a arquitetura aparece (sem volumes coloridos nem etiquetas)
+  if (viewMode === 'windowView') return null
 
   return (
     <>
