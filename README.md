@@ -1,4 +1,4 @@
-# Plataforma Imobiliária 3D
+# Maquete
 
 Plataforma interativa de vendas na planta, com maquete 3D, horário do dia e (nas próximas etapas) unidades, planta baixa e Window View. Veja `CLAUDE.md` para o guia completo.
 
