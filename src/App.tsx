@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { BlueprintView } from './components/blueprint/BlueprintView'
 import { Scene } from './components/scene/Scene'
 import { useIdleReset } from './hooks/useIdleReset'
+import { Sections } from './components/sections/Sections'
+import { BottomNav } from './components/ui/BottomNav'
 import { StatusLegend } from './components/ui/StatusLegend'
 import { TimeSlider } from './components/ui/TimeSlider'
 import { UnitPanel } from './components/ui/UnitPanel'
@@ -35,6 +37,8 @@ export default function App() {
         <TimeSlider />
         <StatusLegend />
         <UnitPanel />
+        <Sections />
+        <BottomNav />
         <BlueprintView />
         <WindowViewBar />
       </div>

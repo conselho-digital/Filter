@@ -17,7 +17,7 @@ export function StatusLegend() {
   if (viewMode === 'windowView') return null
 
   return (
-    <ul className="glass pointer-events-auto absolute bottom-4 left-4 flex flex-col gap-2 rounded-2xl px-4 py-3 text-sm">
+    <ul className="glass pointer-events-auto absolute bottom-24 left-4 flex flex-col gap-2 rounded-2xl px-4 py-3 text-sm">
       {ORDER.map((s) => (
         <li key={s} className="flex items-center gap-3">
           <span className="h-3.5 w-3.5 rounded-sm" style={{ background: STATUS_COLOR[s] }} aria-hidden />

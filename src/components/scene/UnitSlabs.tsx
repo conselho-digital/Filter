@@ -3,6 +3,7 @@ import type { ThreeEvent } from '@react-three/fiber'
 import type { Unit } from '../../data/units'
 import { UNITS_PER_FLOOR } from '../../data/units'
 import { CORE_DEPTH, CORE_WIDTH, FLOOR_HEIGHT, SLAB_THICKNESS, unitLocalX } from '../../lib/tower'
+import { matchesFilters } from '../../lib/filters'
 import { STATUS_COLOR, STATUS_LABEL } from '../../lib/status'
 import { useStore } from '../../store/useStore'
 
@@ -17,6 +18,7 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
   const selectUnit = useStore((s) => s.selectUnit)
   const setHovered = useStore((s) => s.setHoveredUnit)
   const viewMode = useStore((s) => s.viewMode)
+  const filters = useStore((s) => s.filters)
 
   // na vista da varanda só a arquitetura aparece (sem volumes coloridos nem etiquetas)
   if (viewMode === 'windowView') return null
@@ -25,18 +27,21 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
     <>
       {units.map((u) => {
         const selected = u.id === selectedId
-        const hovered = u.id === hoveredId
-        const color = STATUS_COLOR[u.status]
+        const matches = matchesFilters(u, filters)
+        const hovered = matches && u.id === hoveredId
+        const color = matches ? STATUS_COLOR[u.status] : '#6b7280'
         return (
           <mesh
             key={u.id}
             position={[unitLocalX(u.slot), SLAB_THICKNESS + FLOOR_HEIGHT / 2 - SLAB_THICKNESS / 2, 0]}
             onClick={(e: ThreeEvent<MouseEvent>) => {
+              if (!matches) return // apagada pelo filtro: deixa o toque passar
               e.stopPropagation()
               setHovered(null) // em toque não há pointerout: evita realce preso
               selectUnit(u.id)
             }}
             onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+              if (!matches) return
               e.stopPropagation()
               setHovered(u.id)
             }}
@@ -46,9 +51,9 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
             <meshStandardMaterial
               color={color}
               emissive={color}
-              emissiveIntensity={selected ? 1.1 : hovered ? 0.7 : 0.25}
+              emissiveIntensity={selected ? 1.1 : hovered ? 0.7 : matches ? 0.25 : 0}
               transparent
-              opacity={selected ? 0.95 : hovered ? 0.85 : 0.55}
+              opacity={selected ? 0.95 : hovered ? 0.85 : matches ? 0.55 : 0.12}
               depthWrite={false}
             />
             {(hovered || selected) && (
