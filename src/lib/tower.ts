@@ -4,8 +4,7 @@ import { MAIN_TOWER_FLOORS, UNITS_PER_FLOOR } from '../data/units'
 /** altura do térreo (lobby em vidro com pilotis) sob o primeiro andar */
 export const BASE_HEIGHT = 0.9
 /** largura de um vão (um apartamento) na fachada */
-export const BAY = 4.4 / UNITS_PER_FLOOR
-export const BALCONY_DEPTH = 0.5
+export const BALCONY_DEPTH = 0.6
 export const FLOOR_HEIGHT = 0.62
 export const SLAB_THICKNESS = 0.12
 export const CORE_WIDTH = 4.4
@@ -40,10 +39,54 @@ export function towerLevels(floors: number, _seed: number): Level[] {
   }))
 }
 
-/** As varandas formam um tijolo: andares ímpares deslocam meio vão. */
-export function balconyShift(floor: number) {
-  return floor % 2 === 0 ? BAY / 2 : 0
+/** Passo-alvo entre varandas: cerca de 9 por fileira na fachada longa, como no render de referência. */
+const BALCONY_PITCH = 0.49
+
+/** Quantas varandas cabem numa fachada de `length` e o passo real entre elas. */
+export function balconyGrid(length: number) {
+  const n = Math.max(2, Math.round(length / BALCONY_PITCH))
+  return { n, pitch: length / n }
 }
+
+export interface BalconySegment {
+  /** centro ao longo da fachada (0 = meio) */
+  x: number
+  /** largura da caixa; as vizinhas se encostam, sem vão */
+  w: number
+}
+
+/**
+ * Caixas de varanda de um andar numa fachada. Os andares pares usam a grade cheia; os ímpares
+ * deslocam meio passo e fecham as pontas com meias-caixas, formando uma malha contínua (tijolo).
+ */
+export function balconySegments(length: number, floor: number): BalconySegment[] {
+  const { n, pitch } = balconyGrid(length)
+  if (floor % 2 === 0) {
+    return Array.from({ length: n }, (_, k) => ({ x: -length / 2 + pitch / 2 + k * pitch, w: pitch }))
+  }
+  const inner = Array.from({ length: n - 1 }, (_, k) => ({ x: -length / 2 + pitch + k * pitch, w: pitch }))
+  return [
+    { x: -length / 2 + pitch / 4, w: pitch / 2 },
+    ...inner,
+    { x: length / 2 - pitch / 4, w: pitch / 2 },
+  ]
+}
+
+/** Centros das caixas de um andar (sem as meias-caixas das pontas). */
+export function balconyOffsets(length: number, floor: number): number[] {
+  const { pitch } = balconyGrid(length)
+  return balconySegments(length, floor)
+    .filter((sg) => sg.w > pitch * 0.9)
+    .map((sg) => sg.x)
+}
+
+/** Caixa inteira do andar mais próxima de um ponto da fachada. */
+export function nearestBalcony(length: number, floor: number, at: number): number {
+  return balconyOffsets(length, floor).reduce((best, x) => (Math.abs(x - at) < Math.abs(best - at) ? x : best))
+}
+
+/** Altura dos olhos na varanda: acima do parapeito e abaixo da laje do andar de cima. */
+export const EYE_HEIGHT = 0.585
 
 /** Centro do apartamento na laje, no espaço local do andar. */
 export function unitLocalX(slot: number) {
@@ -90,13 +133,13 @@ export function unitWindowPose(unit: Unit, view: WindowViewId, tower: TowerConfi
   const level = towerLevels(tower.floors, tower.seed)[unit.floor - 1]
   const [dx, dz] = ORIENTATION_DIR[unit.orientation] ?? [0, -1]
   // fica logo além da fachada, ainda sob a laje de cima (que serve de teto da varanda)
-  const lx = dx !== 0 ? dx * (CORE_WIDTH / 2 + 0.3) : unitLocalX(unit.slot) + balconyShift(unit.floor)
-  const lz = dz !== 0 ? dz * (CORE_DEPTH / 2 + 0.2) : 0
+  const lx = dx !== 0 ? dx * (CORE_WIDTH / 2 + 0.3) : nearestBalcony(CORE_WIDTH, unit.floor, unitLocalX(unit.slot))
+  const lz = dz !== 0 ? dz * (CORE_DEPTH / 2 + 0.2) : nearestBalcony(CORE_DEPTH, unit.floor, 0)
   const sx = lx * level.scale
   const sz = lz * level.scale
   const cos = Math.cos(level.rot)
   const sin = Math.sin(level.rot)
-  const y = tower.position[1] + level.y + SLAB_THICKNESS + (FLOOR_HEIGHT - SLAB_THICKNESS) * 0.72
+  const y = tower.position[1] + level.y + EYE_HEIGHT
   const baseYaw = Math.atan2(-dx, -dz) + (SEA_BIAS[unit.orientation] ?? 0) + level.rot
   return {
     position: [
@@ -104,6 +147,7 @@ export function unitWindowPose(unit: Unit, view: WindowViewId, tower: TowerConfi
       y,
       tower.position[2] + level.dz - sx * sin + sz * cos,
     ],
-    yaw: view === 'view2' ? baseYaw + 0.95 : baseYaw,
+    // a Vista 2 gira para o lado aberto (na empena Leste o giro positivo apontaria para o núcleo)
+    yaw: view === 'view2' ? baseYaw + (unit.orientation === 'Leste' ? -0.95 : 0.95) : baseYaw,
   }
 }

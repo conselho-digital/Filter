@@ -1,11 +1,16 @@
 import { Html } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
+import { Mesh } from 'three'
 import type { Unit } from '../../data/units'
 import { UNITS_PER_FLOOR } from '../../data/units'
 import { CORE_DEPTH, CORE_WIDTH, FLOOR_HEIGHT, SLAB_THICKNESS, unitLocalX } from '../../lib/tower'
-import { matchesFilters } from '../../lib/filters'
+import { isDefaultFilters, matchesFilters } from '../../lib/filters'
 import { STATUS_COLOR, STATUS_LABEL } from '../../lib/status'
 import { useStore } from '../../store/useStore'
+
+// R3F ignora `raycast={undefined}` e não restaura o padrão: sempre passamos uma função
+const meshRaycast = Mesh.prototype.raycast
+const noRaycast = () => undefined
 
 const WIDTH = CORE_WIDTH / UNITS_PER_FLOOR - 0.06
 const HEIGHT = FLOOR_HEIGHT - SLAB_THICKNESS - 0.04
@@ -19,6 +24,8 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
   const setHovered = useStore((s) => s.setHoveredUnit)
   const viewMode = useStore((s) => s.viewMode)
   const filters = useStore((s) => s.filters)
+  const statusVisible = useStore((s) => s.statusVisible)
+  const filterActive = !isDefaultFilters(filters)
 
   // na vista da varanda só a arquitetura aparece (sem volumes coloridos nem etiquetas)
   if (viewMode === 'windowView') return null
@@ -29,11 +36,15 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
         const selected = u.id === selectedId
         const matches = matchesFilters(u, filters)
         const hovered = matches && u.id === hoveredId
+        const shown = matches && statusVisible[u.status]
         const color = matches || selected ? STATUS_COLOR[u.status] : '#6b7280'
+        // sem botão marcado a fachada fica limpa; o volume continua clicável (opacidade 0)
+        const opacity = selected ? 0.95 : hovered ? 0.6 : shown ? 0.5 : !matches && filterActive ? 0.5 : 0
+        const emissive = selected ? 1.1 : hovered ? 0.5 : shown ? 0.3 : 0
         return (
           <mesh
             key={u.id}
-            raycast={matches ? undefined : () => undefined}
+            raycast={matches ? meshRaycast : noRaycast}
             position={[unitLocalX(u.slot), SLAB_THICKNESS + FLOOR_HEIGHT / 2 - SLAB_THICKNESS / 2, 0]}
             onClick={(e: ThreeEvent<MouseEvent>) => {
               if (!matches) return // apagada pelo filtro: deixa o toque passar
@@ -52,9 +63,9 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
             <meshStandardMaterial
               color={color}
               emissive={color}
-              emissiveIntensity={selected ? 1.1 : hovered ? 0.7 : matches ? (u.status === 'available' ? 0.12 : 0.3) : 0}
+              emissiveIntensity={emissive}
               transparent
-              opacity={selected ? 0.95 : hovered ? 0.85 : matches ? (u.status === 'available' ? 0.2 : 0.55) : 0.08}
+              opacity={opacity}
               depthWrite={false}
             />
             {(hovered || selected) && (

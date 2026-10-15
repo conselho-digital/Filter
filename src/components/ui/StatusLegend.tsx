@@ -5,9 +5,12 @@ import { useStore } from '../../store/useStore'
 
 const ORDER: UnitStatus[] = ['available', 'reserved', 'sold']
 
-/** Legenda de status com a contagem de unidades da torre. */
+/** Botões de marcar: mostram na maquete só os status escolhidos, com a contagem de unidades. */
 export function StatusLegend() {
   const viewMode = useStore((s) => s.viewMode)
+  const statusVisible = useStore((s) => s.statusVisible)
+  const toggleStatus = useStore((s) => s.toggleStatus)
+
   const counts = useMemo(() => {
     const c: Record<UnitStatus, number> = { available: 0, reserved: 0, sold: 0 }
     for (const u of UNITS) c[u.status]++
@@ -17,14 +20,37 @@ export function StatusLegend() {
   if (viewMode === 'windowView') return null
 
   return (
-    <ul className="glass pointer-events-auto absolute bottom-24 left-4 flex flex-col gap-2 rounded-2xl px-4 py-3 text-sm">
+    <fieldset className="glass pointer-events-auto absolute bottom-24 left-4 flex flex-col gap-1 rounded-2xl px-3 py-2">
+      <legend className="sr-only">Mostrar status das unidades na maquete</legend>
       {ORDER.map((s) => (
-        <li key={s} className="flex items-center gap-3">
-          <span className="h-3.5 w-3.5 rounded-sm" style={{ background: STATUS_COLOR[s] }} aria-hidden />
-          <span className="text-white/90">{STATUS_LABEL[s]}</span>
-          <span className="ml-auto pl-4 tabular-nums text-white/60">{counts[s]}</span>
-        </li>
+        <label
+          key={s}
+          className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl px-2 text-sm text-white transition-colors hover:bg-white/10 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-white"
+        >
+          <input
+            type="checkbox"
+            checked={statusVisible[s]}
+            onChange={() => toggleStatus(s)}
+            className="peer sr-only"
+          />
+          <span
+            aria-hidden
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 transition-colors"
+            style={{
+              borderColor: STATUS_COLOR[s],
+              background: statusVisible[s] ? STATUS_COLOR[s] : 'transparent',
+            }}
+          >
+            {statusVisible[s] && (
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 8.5 6.5 12 13 4.5" />
+              </svg>
+            )}
+          </span>
+          <span className="flex-1">{STATUS_LABEL[s]}</span>
+          <span className="pl-3 tabular-nums text-white/60">{counts[s]}</span>
+        </label>
       ))}
-    </ul>
+    </fieldset>
   )
 }

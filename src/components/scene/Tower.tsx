@@ -1,21 +1,18 @@
 import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import { Color, ExtrudeGeometry, InstancedMesh, Matrix4, Object3D, Shape } from 'three'
 import type { Unit } from '../../data/units'
-import { UNITS_PER_FLOOR } from '../../data/units'
 import { createRng } from '../../lib/random'
 import { UNITS_BY_ID } from '../../data/units'
 import { useStore } from '../../store/useStore'
 import {
   BALCONY_DEPTH,
   BASE_HEIGHT,
-  BAY,
   CORE_DEPTH,
   CORE_WIDTH,
   FLOOR_HEIGHT,
-  SLAB_THICKNESS,
-  balconyShift,
+  balconyGrid,
+  balconySegments,
   towerLevels,
-  unitLocalX,
   unitWindowPose,
   type TowerConfig,
 } from '../../lib/tower'
@@ -36,10 +33,10 @@ const CONCRETE = '#b7b2a8'
 const COPPER = '#9c6b45'
 const GREENS = ['#3f7d3a', '#4d8f43', '#5f9c4e', '#35692f', '#6aa858']
 const FLOWERS = ['#d9468f', '#e8c63a', '#9b59b6', '#e8734a', '#f0a0c0']
-const BALCONY_W = BAY - 0.08
-const SIDE_W = 0.9
-const BAL_Y = 0.08 // altura do centro da laje da varanda (topo na altura do piso)
-const PARAPET_H = 0.17
+const SLAB_Y = 0.075 // centro da laje da caixa (de 0,04 a 0,11)
+const WALL_Y0 = 0.11 // base das paredes da caixa
+const PARAPET_H = 0.4 // caixas altas e grossas: a fachada fica quase toda coberta, como no render
+const WALL = 0.07
 
 const dummy = new Object3D()
 function mat(x: number, y: number, z: number, sx: number, sy: number, sz: number, rotY = 0): Matrix4 {
@@ -54,6 +51,7 @@ interface Parts {
   balconySlab: Matrix4[]
   parapetFront: Matrix4[]
   parapetSide: Matrix4[]
+  soil: Matrix4[]
   windowsLit: Matrix4[]
   windowsDark: Matrix4[]
   floorBands: Matrix4[]
@@ -70,6 +68,7 @@ function buildParts(floors: number, seed: number): Parts {
     balconySlab: [],
     parapetFront: [],
     parapetSide: [],
+    soil: [],
     windowsLit: [],
     windowsDark: [],
     floorBands: [],
@@ -91,21 +90,24 @@ function buildParts(floors: number, seed: number): Parts {
       cz - lx * s + lz * c,
     ]
     const D = BALCONY_DEPTH
-    p.balconySlab.push(mat(...at(0, BAL_Y, 0), w, 0.08, D, rot))
-    p.parapetFront.push(mat(...at(0, 0.12 + PARAPET_H / 2, D / 2 - 0.025), w, PARAPET_H, 0.05, rot))
-    p.parapetSide.push(mat(...at(w / 2 - 0.025, 0.12 + PARAPET_H / 2, 0), 0.05, PARAPET_H, D, rot))
-    p.parapetSide.push(mat(...at(-w / 2 + 0.025, 0.12 + PARAPET_H / 2, 0), 0.05, PARAPET_H, D, rot))
-    if (rand() < 0.72) {
+    p.balconySlab.push(mat(...at(0, SLAB_Y, 0), w, 0.07, D, rot))
+    p.parapetFront.push(mat(...at(0, WALL_Y0 + PARAPET_H / 2, D / 2 - WALL / 2), w, PARAPET_H, WALL, rot))
+    p.parapetSide.push(mat(...at(w / 2 - WALL / 2, WALL_Y0 + PARAPET_H / 2, 0), WALL, PARAPET_H, D, rot))
+    p.parapetSide.push(mat(...at(-w / 2 + WALL / 2, WALL_Y0 + PARAPET_H / 2, 0), WALL, PARAPET_H, D, rot))
+    // terra da jardineira: faz cada caixa ler como bandeja aberta
+    p.soil.push(mat(...at(0, WALL_Y0 + PARAPET_H * 0.82, -WALL / 2), w - 2 * WALL, 0.03, D - WALL * 1.6, rot))
+    if (rand() < 0.6) {
       const n = 1 + Math.floor(rand() * 3)
       for (let k = 0; k < n; k++) {
-        const r = 0.05 + rand() * 0.05
-        const lx = (rand() - 0.5) * (w - 0.22)
-        const [x, y, z] = at(lx, 0.12 + PARAPET_H + r * 0.55, D / 2 - 0.05)
-        p.plants.push(mat(x, y, z, r * 1.25, r, r * 1.25))
+        const r = 0.05 + rand() * 0.06
+        const lx = (rand() - 0.5) * (w - 0.2)
+        const lz = (rand() - 0.5) * (D - 0.25)
+        const [x, y, z] = at(lx, WALL_Y0 + PARAPET_H * 0.82 + r * 0.7, lz)
+        p.plants.push(mat(x, y, z, r * 1.2, r, r * 1.2))
         p.plantColors.push(new Color(GREENS[Math.floor(rand() * GREENS.length)]))
         if (rand() < 0.5) {
           const fr = 0.022 + rand() * 0.02
-          const [fx, fy, fz] = at(lx + (rand() - 0.5) * 0.1, 0.12 + PARAPET_H + r * 1.15, D / 2 - 0.05)
+          const [fx, fy, fz] = at(lx + (rand() - 0.5) * 0.1, WALL_Y0 + PARAPET_H * 0.82 + r * 1.5, lz)
           p.flowers.push(mat(fx, fy, fz, fr, fr, fr))
           p.flowerColors.push(new Color(FLOWERS[Math.floor(rand() * FLOWERS.length)]))
         }
@@ -116,23 +118,33 @@ function buildParts(floors: number, seed: number): Parts {
   for (let i = 0; i < floors; i++) {
     const floor = i + 1
     const y = levels[i].y
-    const shift = balconyShift(floor)
     p.floorBands.push(mat(0, y + 0.03, 0, CORE_WIDTH + 0.03, 0.06, CORE_DEPTH + 0.03))
-    for (let slot = 0; slot < UNITS_PER_FLOOR; slot++) {
-      const ux = unitLocalX(slot)
-      const bx = ux + shift
-      addBalcony(bx, y, CORE_DEPTH / 2 + BALCONY_DEPTH / 2, 0, BALCONY_W)
-      addBalcony(bx, y, -(CORE_DEPTH / 2 + BALCONY_DEPTH / 2), Math.PI, BALCONY_W)
+    // fachadas longas: malha contínua de caixas (sem vão), deslocada meio passo nos andares ímpares
+    for (const sg of balconySegments(CORE_WIDTH, floor)) {
+      addBalcony(sg.x, y, CORE_DEPTH / 2 + BALCONY_DEPTH / 2, 0, sg.w)
+      addBalcony(sg.x, y, -(CORE_DEPTH / 2 + BALCONY_DEPTH / 2), Math.PI, sg.w)
+    }
+    // empenas laterais (vista Oeste e Leste)
+    for (const sign of [1, -1] as const) {
+      for (const sg of balconySegments(CORE_DEPTH, floor)) {
+        addBalcony(sign * (CORE_WIDTH / 2 + BALCONY_DEPTH / 2), y, sg.x, sign * (Math.PI / 2), sg.w)
+      }
+    }
+    // frestas de janela no espaço livre entre uma fileira de caixas e a laje da seguinte
+    const wy = y + 0.585
+    const longPitch = balconyGrid(CORE_WIDTH).pitch
+    const sidePitch = balconyGrid(CORE_DEPTH).pitch
+    for (const sg of balconySegments(CORE_WIDTH, 0)) {
       for (const sign of [1, -1] as const) {
-        const m = mat(ux, y + SLAB_THICKNESS + 0.25, sign * (CORE_DEPTH / 2 + 0.012), 0.5, 0.27, 0.03, sign === 1 ? 0 : Math.PI)
+        const m = mat(sg.x, wy, sign * (CORE_DEPTH / 2 + 0.012), longPitch * 0.6, 0.1, 0.03, sign === 1 ? 0 : Math.PI)
         ;(rand() < 0.55 ? p.windowsLit : p.windowsDark).push(m)
       }
     }
-    // varandas e janelas das empenas laterais (vista Oeste e Leste)
-    for (const sign of [1, -1] as const) {
-      addBalcony(sign * (CORE_WIDTH / 2 + BALCONY_DEPTH / 2), y, 0, sign * (Math.PI / 2), SIDE_W)
-      const m = mat(sign * (CORE_WIDTH / 2 + 0.012), y + SLAB_THICKNESS + 0.25, 0, 0.5, 0.27, 0.03, sign * (Math.PI / 2))
-      ;(rand() < 0.55 ? p.windowsLit : p.windowsDark).push(m)
+    for (const sg of balconySegments(CORE_DEPTH, 0)) {
+      for (const sign of [1, -1] as const) {
+        const m = mat(sign * (CORE_WIDTH / 2 + 0.012), wy, sg.x, sidePitch * 0.6, 0.1, 0.03, sign * (Math.PI / 2))
+        ;(rand() < 0.55 ? p.windowsLit : p.windowsDark).push(m)
+      }
     }
   }
   return p
@@ -288,6 +300,11 @@ export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, unit
       <Inst m={parts.parapetSide}>
         {box}
         <meshStandardMaterial color={CREAM_DARK} roughness={0.95} />
+      </Inst>
+
+      <Inst m={parts.soil} cast={false}>
+        {box}
+        <meshStandardMaterial color="#3f4a35" roughness={1} />
       </Inst>
 
       {/* janelas: de noite parte delas acende */}

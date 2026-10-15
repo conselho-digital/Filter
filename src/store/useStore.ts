@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { UNITS, UNITS_BY_ID } from '../data/units'
+import { UNITS, UNITS_BY_ID, type UnitStatus } from '../data/units'
 import { DEFAULT_FILTERS, matchesFilters, sanitizeQuery, type Filters } from '../lib/filters'
 
 export type Section = 'apartments' | 'compare' | 'location' | 'gallery' | 'highlights'
@@ -22,6 +22,8 @@ interface AppState {
   printRequested: boolean
   windowViewPreset: WindowViewPreset
   filters: Filters
+  /** quais status aparecem coloridos na maquete (todos desligados no início) */
+  statusVisible: Record<UnitStatus, boolean>
   /** seção aberta pelo menu inferior (cobre a maquete) */
   section: Section | null
   setViewMode: (mode: ViewMode) => void
@@ -34,6 +36,7 @@ interface AppState {
   openWindowView: () => void
   setFilters: (patch: Partial<Filters>) => void
   resetFilters: () => void
+  toggleStatus: (s: UnitStatus) => void
   openSection: (s: Section | null) => void
   closeWindowView: () => void
   setWindowViewPreset: (p: WindowViewPreset) => void
@@ -46,6 +49,7 @@ interface AppState {
   toggleFavorite: (id: string) => void
 }
 
+const NO_STATUS: Record<UnitStatus, boolean> = { available: false, reserved: false, sold: false }
 const MAX_COMPARE = 4
 const toggleIn = (list: string[], id: string) =>
   list.includes(id) ? list.filter((x) => x !== id) : [...list, id]
@@ -61,6 +65,7 @@ export const useStore = create<AppState>((set, get) => ({
   printRequested: false,
   windowViewPreset: 'view1',
   filters: DEFAULT_FILTERS,
+  statusVisible: NO_STATUS,
   section: null,
   setViewMode: (viewMode) =>
     set((s) => {
@@ -118,6 +123,7 @@ export const useStore = create<AppState>((set, get) => ({
       printRequested: false,
       windowViewPreset: 'view1',
       filters: DEFAULT_FILTERS,
+      statusVisible: NO_STATUS,
       section: null,
     }),
   setFilters: (patch) =>
@@ -129,6 +135,7 @@ export const useStore = create<AppState>((set, get) => ({
       },
     })),
   resetFilters: () => set({ filters: DEFAULT_FILTERS }),
+  toggleStatus: (status) => set((s) => ({ statusVisible: { ...s.statusVisible, [status]: !s.statusVisible[status] } })),
   openSection: (section) =>
     set((s) =>
       // seções cobrem a maquete: fecham unidade/planta/varanda para o estado ficar coerente
