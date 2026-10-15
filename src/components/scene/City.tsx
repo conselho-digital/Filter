@@ -13,7 +13,7 @@ export function City({ night }: CityProps) {
     for (let i = 0; i < 70; i++) {
       const x = (rand() - 0.5) * 70
       const z = -14 + rand() * 48
-      if (Math.abs(x) < 10 && z < 18) continue // área livre do empreendimento
+      if (Math.abs(x) < 15 && z < 18) continue // área livre do empreendimento
       out.push({ x, z, w: 1.6 + rand() * 2.4, d: 1.6 + rand() * 2.4, h: 1.5 + rand() * 6 })
     }
     return out
@@ -21,11 +21,15 @@ export function City({ night }: CityProps) {
 
   const trees = useMemo(() => {
     const rand = createRng(21)
-    return Array.from({ length: 60 }, () => ({
-      x: (rand() - 0.5) * 24,
-      z: 3 + rand() * 9,
-      s: 0.5 + rand() * 0.6,
-    }))
+    const out: { x: number; z: number; s: number }[] = []
+    while (out.length < 60) {
+      const x = (rand() - 0.5) * 24
+      const z = 3 + rand() * 9
+      const s = 0.5 + rand() * 0.6
+      if (Math.abs(x) < 3.2 && z > 4.2 && z < 7.8) continue // piscina
+      out.push({ x, z, s })
+    }
+    return out
   }, [])
 
   return (

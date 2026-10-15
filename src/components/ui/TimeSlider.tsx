@@ -23,6 +23,7 @@ export function TimeSlider() {
               key={label}
               type="button"
               aria-label={label}
+              aria-pressed={active}
               onClick={() => setTimeOfDay(t)}
               className="absolute top-0 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-brand"
               style={{ left: `${t * 100}%` }}
@@ -44,6 +45,7 @@ export function TimeSlider() {
         value={timeOfDay}
         onChange={(e) => setTimeOfDay(parseFloat(e.target.value))}
         aria-label="Horário do dia"
+        aria-valuetext={MARKS.reduce((best, m) => (Math.abs(m.t - timeOfDay) < Math.abs(best.t - timeOfDay) ? m : best)).label}
         className="time-range h-8 w-full cursor-pointer"
       />
     </div>

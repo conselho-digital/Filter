@@ -16,6 +16,7 @@ export function Scene() {
     <Canvas
       shadows={{ type: PCFShadowMap }}
       dpr={[1, 2]}
+      frameloop="demand"
       camera={{ position: [26, 16, 30], fov: 40, near: 0.1, far: 500 }}
       gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}
     >
@@ -29,9 +30,10 @@ export function Scene() {
         enableDamping
         dampingFactor={0.08}
         target={[0, 7, 0]}
-        minDistance={8}
+        minDistance={16}
         maxDistance={70}
-        maxPolarAngle={Math.PI / 2 - 0.05}
+        enablePan={false}
+        maxPolarAngle={Math.PI / 2 - 0.08}
         rotateSpeed={0.6}
         zoomSpeed={0.8}
       />
