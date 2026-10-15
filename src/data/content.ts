@@ -51,5 +51,5 @@ export const GALLERY: GalleryImage[] = [
   { id: 'aereo-noite', src: '/gallery/aereo-noite.jpg', title: 'Vista aérea, noite', alt: 'Vista aérea do empreendimento à noite, com as janelas acesas' },
   { id: 'torre', src: '/gallery/torre.jpg', title: 'A torre', alt: 'Fachada da torre principal com os apartamentos' },
   { id: 'varanda-dia', src: '/gallery/varanda-dia.jpg', title: 'Varanda, vista para o mar', alt: 'Vista do mar e da praia a partir da varanda, durante o dia' },
-  { id: 'varanda-poente', src: '/gallery/varanda-poente.jpg', title: 'Varanda, pôr do sol', alt: 'Pôr do sol visto da varanda, com a torre vizinha e o reflexo do sol' },
+  { id: 'torre-poente', src: '/gallery/torre-poente.jpg', title: 'A torre, pôr do sol', alt: 'Fachada da torre com os blocos de varanda ao pôr do sol' },
 ]

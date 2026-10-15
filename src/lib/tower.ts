@@ -4,7 +4,7 @@ import { MAIN_TOWER_FLOORS, UNITS_PER_FLOOR } from '../data/units'
 /** altura do térreo (lobby em vidro com pilotis) sob o primeiro andar */
 export const BASE_HEIGHT = 0.9
 /** largura de um vão (um apartamento) na fachada */
-export const BALCONY_DEPTH = 0.6
+export const BALCONY_DEPTH = 0.62
 export const FLOOR_HEIGHT = 0.62
 export const SLAB_THICKNESS = 0.12
 export const CORE_WIDTH = 4.4
@@ -39,48 +39,39 @@ export function towerLevels(floors: number, _seed: number): Level[] {
   }))
 }
 
-/** Passo-alvo entre varandas: cerca de 9 por fileira na fachada longa, como no render de referência. */
-const BALCONY_PITCH = 0.49
-
-/** Quantas varandas cabem numa fachada de `length` e o passo real entre elas. */
+/**
+ * Grade da fachada: cada célula tem aproximadamente a altura de um andar (célula quase quadrada).
+ * `n` colunas por fachada e o passo real entre os centros.
+ */
 export function balconyGrid(length: number) {
-  const n = Math.max(2, Math.round(length / BALCONY_PITCH))
+  const n = Math.max(2, Math.round(length / FLOOR_HEIGHT))
   return { n, pitch: length / n }
 }
 
-export interface BalconySegment {
+export interface FacadeCell {
   /** centro ao longo da fachada (0 = meio) */
   x: number
-  /** largura da caixa; as vizinhas se encostam, sem vão */
-  w: number
+  /** true = bloco de varanda em balanço; false = célula vazia com janela recuada */
+  block: boolean
 }
 
-/**
- * Caixas de varanda de um andar numa fachada. Os andares pares usam a grade cheia; os ímpares
- * deslocam meio passo e fecham as pontas com meias-caixas, formando uma malha contínua (tijolo).
- */
-export function balconySegments(length: number, floor: number): BalconySegment[] {
+/** Tabuleiro de xadrez: num andar, colunas alternadas têm bloco; o andar de cima inverte. */
+export function facadeCells(length: number, floor: number): FacadeCell[] {
   const { n, pitch } = balconyGrid(length)
-  if (floor % 2 === 0) {
-    return Array.from({ length: n }, (_, k) => ({ x: -length / 2 + pitch / 2 + k * pitch, w: pitch }))
-  }
-  const inner = Array.from({ length: n - 1 }, (_, k) => ({ x: -length / 2 + pitch + k * pitch, w: pitch }))
-  return [
-    { x: -length / 2 + pitch / 4, w: pitch / 2 },
-    ...inner,
-    { x: length / 2 - pitch / 4, w: pitch / 2 },
-  ]
+  return Array.from({ length: n }, (_, k) => ({
+    x: -length / 2 + pitch / 2 + k * pitch,
+    block: (k + floor) % 2 === 0,
+  }))
 }
 
-/** Centros das caixas de um andar (sem as meias-caixas das pontas). */
+/** Centros dos blocos de varanda de um andar. */
 export function balconyOffsets(length: number, floor: number): number[] {
-  const { pitch } = balconyGrid(length)
-  return balconySegments(length, floor)
-    .filter((sg) => sg.w > pitch * 0.9)
-    .map((sg) => sg.x)
+  return facadeCells(length, floor)
+    .filter((c) => c.block)
+    .map((c) => c.x)
 }
 
-/** Caixa inteira do andar mais próxima de um ponto da fachada. */
+/** Bloco do andar mais próximo de um ponto da fachada. */
 export function nearestBalcony(length: number, floor: number, at: number): number {
   return balconyOffsets(length, floor).reduce((best, x) => (Math.abs(x - at) < Math.abs(best - at) ? x : best))
 }

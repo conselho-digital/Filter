@@ -1,8 +1,8 @@
 import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
-import { Color, ExtrudeGeometry, InstancedMesh, Matrix4, Object3D, Shape } from 'three'
+import { Color, DoubleSide, ExtrudeGeometry, InstancedMesh, Matrix4, Object3D, Shape } from 'three'
 import type { Unit } from '../../data/units'
-import { createRng } from '../../lib/random'
 import { UNITS_BY_ID } from '../../data/units'
+import { createRng } from '../../lib/random'
 import { useStore } from '../../store/useStore'
 import {
   BALCONY_DEPTH,
@@ -11,7 +11,7 @@ import {
   CORE_WIDTH,
   FLOOR_HEIGHT,
   balconyGrid,
-  balconySegments,
+  facadeCells,
   towerLevels,
   unitWindowPose,
   type TowerConfig,
@@ -23,127 +23,159 @@ interface TowerProps extends Partial<TowerConfig> {
   night: number
   /** unidades à venda desta torre (opcional) */
   units?: Unit[]
-  /** anexo baixo com teto verde ao lado da torre */
+  /** pódio largo e duplo na base (café, lobby, praça); só na torre principal */
   podium?: boolean
 }
 
-const CREAM = '#e6dfd0'
+// materiais e cores (concreto claro, bronze, madeira, vidro escuro)
+const CREAM = '#e9e3d6'
+const CORE_WALL = '#d6cebd'
 const CREAM_DARK = '#cfc6b3'
-const CONCRETE = '#b7b2a8'
-const COPPER = '#9c6b45'
+const CONCRETE = '#b3aea4'
+const BRONZE = '#8b6a45'
+const WOOD = '#8a5a32'
+const GLASS = '#1f2a38'
+const RAIL = '#26292e'
+const SOIL = '#3f4a35'
 const GREENS = ['#3f7d3a', '#4d8f43', '#5f9c4e', '#35692f', '#6aa858']
 const FLOWERS = ['#d9468f', '#e8c63a', '#9b59b6', '#e8734a', '#f0a0c0']
-const SLAB_Y = 0.075 // centro da laje da caixa (de 0,04 a 0,11)
-const WALL_Y0 = 0.11 // base das paredes da caixa
-const PARAPET_H = 0.4 // caixas altas e grossas: a fachada fica quase toda coberta, como no render
+
+// bloco de varanda: laje inferior espessa, paredes grossas, topo aberto com guarda-corpo fino
+const SLAB_Y = 0.07 // centro da laje (de 0,02 a 0,12)
+const WALL_Y0 = 0.12 // base das paredes
+const WALL_H = 0.45 // altura das paredes (topo em 0,57)
 const WALL = 0.07
 
+// pódio largo e duplo
+const POD_W = CORE_WIDTH + 2.6
+const POD_D = CORE_DEPTH + 1.2
+
 const dummy = new Object3D()
-function mat(x: number, y: number, z: number, sx: number, sy: number, sz: number, rotY = 0): Matrix4 {
+function matR(x: number, y: number, z: number, sx: number, sy: number, sz: number, rx = 0, ry = 0, rz = 0): Matrix4 {
   dummy.position.set(x, y, z)
-  dummy.rotation.set(0, rotY, 0)
+  dummy.rotation.set(rx, ry, rz)
   dummy.scale.set(sx, sy, sz)
   dummy.updateMatrix()
   return dummy.matrix.clone()
 }
+const mat = (x: number, y: number, z: number, sx: number, sy: number, sz: number, rotY = 0) =>
+  matR(x, y, z, sx, sy, sz, 0, rotY, 0)
 
 interface Parts {
-  balconySlab: Matrix4[]
-  parapetFront: Matrix4[]
-  parapetSide: Matrix4[]
+  slab: Matrix4[]
+  wallFront: Matrix4[]
+  wallSide: Matrix4[]
+  railing: Matrix4[]
   soil: Matrix4[]
   windowsLit: Matrix4[]
   windowsDark: Matrix4[]
+  frames: Matrix4[]
   floorBands: Matrix4[]
   plants: Matrix4[]
   plantColors: Color[]
   flowers: Matrix4[]
   flowerColors: Color[]
+  cascade: Matrix4[]
+  cascadeColors: Color[]
 }
 
-/** Gera, de forma determinística, todas as peças repetidas da fachada (varandas, janelas, plantas). */
+/** Gera, de forma determinística, todas as peças repetidas da fachada (blocos, janelas, plantas). */
 function buildParts(floors: number, seed: number): Parts {
   const rand = createRng(seed * 97 + 13)
   const p: Parts = {
-    balconySlab: [],
-    parapetFront: [],
-    parapetSide: [],
+    slab: [],
+    wallFront: [],
+    wallSide: [],
+    railing: [],
     soil: [],
     windowsLit: [],
     windowsDark: [],
+    frames: [],
     floorBands: [],
     plants: [],
     plantColors: [],
     flowers: [],
     flowerColors: [],
+    cascade: [],
+    cascadeColors: [],
   }
   const levels = towerLevels(floors, seed)
+  const D = BALCONY_DEPTH
+  const longPitch = balconyGrid(CORE_WIDTH).pitch
+  const sidePitch = balconyGrid(CORE_DEPTH).pitch
 
-  /** varanda em caixa: laje + parapeito frontal + dois laterais, com jardineira. Centro e giro no mundo da torre. */
-  const addBalcony = (cx: number, cy: number, cz: number, rot: number, w: number) => {
+  /** bloco de varanda em balanço: centro e giro no mundo da torre. */
+  const addBlock = (cx: number, cy: number, cz: number, rot: number, w: number) => {
     const c = Math.cos(rot)
     const s = Math.sin(rot)
-    // ponto no referencial da varanda -> torre
     const at = (lx: number, ly: number, lz: number): [number, number, number] => [
       cx + lx * c + lz * s,
       cy + ly,
       cz - lx * s + lz * c,
     ]
-    const D = BALCONY_DEPTH
-    p.balconySlab.push(mat(...at(0, SLAB_Y, 0), w, 0.07, D, rot))
-    p.parapetFront.push(mat(...at(0, WALL_Y0 + PARAPET_H / 2, D / 2 - WALL / 2), w, PARAPET_H, WALL, rot))
-    p.parapetSide.push(mat(...at(w / 2 - WALL / 2, WALL_Y0 + PARAPET_H / 2, 0), WALL, PARAPET_H, D, rot))
-    p.parapetSide.push(mat(...at(-w / 2 + WALL / 2, WALL_Y0 + PARAPET_H / 2, 0), WALL, PARAPET_H, D, rot))
-    // terra da jardineira: faz cada caixa ler como bandeja aberta
-    p.soil.push(mat(...at(0, WALL_Y0 + PARAPET_H * 0.82, -WALL / 2), w - 2 * WALL, 0.03, D - WALL * 1.6, rot))
+    p.slab.push(mat(...at(0, SLAB_Y, 0), w, 0.1, D, rot))
+    p.wallFront.push(mat(...at(0, WALL_Y0 + WALL_H / 2, D / 2 - WALL / 2), w, WALL_H, WALL, rot))
+    p.wallSide.push(mat(...at(w / 2 - WALL / 2, WALL_Y0 + WALL_H / 2, 0), WALL, WALL_H, D, rot))
+    p.wallSide.push(mat(...at(-w / 2 + WALL / 2, WALL_Y0 + WALL_H / 2, 0), WALL, WALL_H, D, rot))
+    // guarda-corpo fino de metal escuro no topo da parede frontal
+    p.railing.push(mat(...at(0, WALL_Y0 + WALL_H + 0.035, D / 2 - 0.012), w - 0.02, 0.07, 0.014, rot))
+    // terra da jardineira
+    p.soil.push(mat(...at(0, WALL_Y0 + 0.03, D / 2 - WALL - 0.09), w - 2 * WALL, 0.06, 0.16, rot))
     if (rand() < 0.6) {
       const n = 1 + Math.floor(rand() * 3)
       for (let k = 0; k < n; k++) {
         const r = 0.05 + rand() * 0.06
         const lx = (rand() - 0.5) * (w - 0.2)
-        const lz = (rand() - 0.5) * (D - 0.25)
-        const [x, y, z] = at(lx, WALL_Y0 + PARAPET_H * 0.82 + r * 0.7, lz)
-        p.plants.push(mat(x, y, z, r * 1.2, r, r * 1.2))
+        const lz = D / 2 - WALL - 0.09 + (rand() - 0.5) * 0.08
+        const [x, y, z] = at(lx, WALL_Y0 + 0.06 + r * 0.7, lz)
+        p.plants.push(matR(x, y, z, r * 1.2, r, r * 1.2))
         p.plantColors.push(new Color(GREENS[Math.floor(rand() * GREENS.length)]))
         if (rand() < 0.5) {
           const fr = 0.022 + rand() * 0.02
-          const [fx, fy, fz] = at(lx + (rand() - 0.5) * 0.1, WALL_Y0 + PARAPET_H * 0.82 + r * 1.5, lz)
+          const [fx, fy, fz] = at(lx + (rand() - 0.5) * 0.1, WALL_Y0 + 0.06 + r * 1.5, lz)
           p.flowers.push(mat(fx, fy, fz, fr, fr, fr))
           p.flowerColors.push(new Color(FLOWERS[Math.floor(rand() * FLOWERS.length)]))
         }
       }
     }
+    // folhagem que cai pela frente do bloco
+    if (rand() < 0.4) {
+      const n = 1 + Math.floor(rand() * 3)
+      for (let k = 0; k < n; k++) {
+        const len = 0.12 + rand() * 0.18
+        const lx = (rand() - 0.5) * (w - 0.14)
+        p.cascade.push(mat(...at(lx, WALL_Y0 + WALL_H - len / 2 + 0.03, D / 2 + 0.012), 0.05 + rand() * 0.05, len, 0.025, rot))
+        p.cascadeColors.push(new Color(GREENS[Math.floor(rand() * GREENS.length)]))
+      }
+    }
+  }
+
+  /** janela bem recuada, com moldura escura (quadro um pouco maior atrás do vidro). */
+  const addWindow = (x: number, y: number, z: number, rot: number, w: number) => {
+    const wy = y + WALL_Y0 + 0.27
+    p.frames.push(mat(x, wy, z, w + 0.05, 0.36, 0.02, rot))
+    ;(rand() < 0.55 ? p.windowsLit : p.windowsDark).push(mat(x, wy, z, w, 0.3, 0.03, rot))
   }
 
   for (let i = 0; i < floors; i++) {
     const floor = i + 1
     const y = levels[i].y
-    p.floorBands.push(mat(0, y + 0.03, 0, CORE_WIDTH + 0.03, 0.06, CORE_DEPTH + 0.03))
-    // fachadas longas: malha contínua de caixas (sem vão), deslocada meio passo nos andares ímpares
-    for (const sg of balconySegments(CORE_WIDTH, floor)) {
-      addBalcony(sg.x, y, CORE_DEPTH / 2 + BALCONY_DEPTH / 2, 0, sg.w)
-      addBalcony(sg.x, y, -(CORE_DEPTH / 2 + BALCONY_DEPTH / 2), Math.PI, sg.w)
-    }
-    // empenas laterais (vista Oeste e Leste)
-    for (const sign of [1, -1] as const) {
-      for (const sg of balconySegments(CORE_DEPTH, floor)) {
-        addBalcony(sign * (CORE_WIDTH / 2 + BALCONY_DEPTH / 2), y, sg.x, sign * (Math.PI / 2), sg.w)
+    p.floorBands.push(mat(0, y + 0.02, 0, CORE_WIDTH + 0.03, 0.04, CORE_DEPTH + 0.03))
+
+    // fachadas longas (+z e -z): tabuleiro de blocos e janelas nas células vazias
+    for (const cell of facadeCells(CORE_WIDTH, floor)) {
+      for (const sign of [1, -1] as const) {
+        const rot = sign === 1 ? 0 : Math.PI
+        if (cell.block) addBlock(cell.x, y, sign * (CORE_DEPTH / 2 + D / 2), rot, longPitch)
+        else addWindow(cell.x, y, sign * (CORE_DEPTH / 2 + 0.012), rot, longPitch * 0.55)
       }
     }
-    // frestas de janela no espaço livre entre uma fileira de caixas e a laje da seguinte
-    const wy = y + 0.585
-    const longPitch = balconyGrid(CORE_WIDTH).pitch
-    const sidePitch = balconyGrid(CORE_DEPTH).pitch
-    for (const sg of balconySegments(CORE_WIDTH, 0)) {
+    // empenas laterais (+x e -x), mesma lógica
+    for (const cell of facadeCells(CORE_DEPTH, floor)) {
       for (const sign of [1, -1] as const) {
-        const m = mat(sg.x, wy, sign * (CORE_DEPTH / 2 + 0.012), longPitch * 0.6, 0.1, 0.03, sign === 1 ? 0 : Math.PI)
-        ;(rand() < 0.55 ? p.windowsLit : p.windowsDark).push(m)
-      }
-    }
-    for (const sg of balconySegments(CORE_DEPTH, 0)) {
-      for (const sign of [1, -1] as const) {
-        const m = mat(sign * (CORE_WIDTH / 2 + 0.012), wy, sg.x, sidePitch * 0.6, 0.1, 0.03, sign * (Math.PI / 2))
-        ;(rand() < 0.55 ? p.windowsLit : p.windowsDark).push(m)
+        const rot = sign * (Math.PI / 2)
+        if (cell.block) addBlock(sign * (CORE_WIDTH / 2 + D / 2), y, cell.x, rot, sidePitch)
+        else addWindow(sign * (CORE_WIDTH / 2 + 0.012), y, cell.x, rot, sidePitch * 0.55)
       }
     }
   }
@@ -197,7 +229,175 @@ function roundedRect(w: number, d: number, r: number) {
   return s
 }
 
-/** Torre residencial de concreto claro, com varandas em caixa em padrão de tijolo, jardineiras e topo acobreado. */
+/** Penthouse recuada no topo: vidro de piso a teto, caixilho de bronze e laje de cobertura plana. */
+function Crown({ top, night }: { top: number; night: number }) {
+  const W = CORE_WIDTH - 1.1
+  const Dp = CORE_DEPTH - 0.7
+  const H = 0.78
+  const mullions = useMemo(() => {
+    const out: Matrix4[] = []
+    const nx = Math.round(W / 0.32)
+    for (let k = 0; k <= nx; k++) {
+      const x = -W / 2 + (k * W) / nx
+      out.push(mat(x, top + 0.08 + H / 2, Dp / 2, 0.04, H, 0.04))
+      out.push(mat(x, top + 0.08 + H / 2, -Dp / 2, 0.04, H, 0.04))
+    }
+    const nz = Math.round(Dp / 0.32)
+    for (let k = 1; k < nz; k++) {
+      const z = -Dp / 2 + (k * Dp) / nz
+      out.push(mat(W / 2, top + 0.08 + H / 2, z, 0.04, H, 0.04))
+      out.push(mat(-W / 2, top + 0.08 + H / 2, z, 0.04, H, 0.04))
+    }
+    return out
+  }, [W, Dp, top])
+  return (
+    <group>
+      {/* terraço de cobertura (laje ocupa toda a planta) */}
+      <mesh position={[0, top + 0.04, 0]} castShadow receiveShadow>
+        <boxGeometry args={[CORE_WIDTH, 0.08, CORE_DEPTH]} />
+        <meshStandardMaterial color={CREAM} roughness={0.95} />
+      </mesh>
+      {/* caixa de vidro recuada */}
+      <mesh position={[0, top + 0.08 + H / 2, 0]} castShadow>
+        <boxGeometry args={[W, H, Dp]} />
+        <meshStandardMaterial color={GLASS} roughness={0.12} metalness={0.45} emissive="#ffcf8a" emissiveIntensity={night * 0.9} />
+      </mesh>
+      <Inst m={mullions}>
+        {box}
+        <meshStandardMaterial color={BRONZE} roughness={0.5} metalness={0.5} />
+      </Inst>
+      {/* laje de cobertura plana com fachada de madeira */}
+      <mesh position={[0, top + 0.08 + H + 0.05, 0]} castShadow>
+        <boxGeometry args={[W + 0.5, 0.1, Dp + 0.5]} />
+        <meshStandardMaterial color={WOOD} roughness={0.7} />
+      </mesh>
+      <mesh position={[0, top + 0.08 + H + 0.115, 0]} castShadow>
+        <boxGeometry args={[W + 0.5, 0.03, Dp + 0.5]} />
+        <meshStandardMaterial color={CREAM} roughness={0.95} />
+      </mesh>
+    </group>
+  )
+}
+
+/** Pódio largo e duplo: pilotis robustos, cortina de vidro com madeira, café, mesas, bananeiras e praça. */
+function Podium({ night }: { night: number }) {
+  const parts = useMemo(() => {
+    const rand = createRng(4242)
+    const mullions: Matrix4[] = []
+    const gw = POD_W - 0.5
+    const gd = POD_D - 0.7
+    const nx = Math.round(gw / 0.33)
+    for (let k = 0; k <= nx; k++) {
+      const x = -gw / 2 + (k * gw) / nx
+      mullions.push(mat(x, (BASE_HEIGHT - 0.12) / 2, gd / 2 + 0.01, 0.035, BASE_HEIGHT - 0.14, 0.035))
+      mullions.push(mat(x, (BASE_HEIGHT - 0.12) / 2, -gd / 2 - 0.01, 0.035, BASE_HEIGHT - 0.14, 0.035))
+    }
+    const nz = Math.round(gd / 0.33)
+    for (let k = 1; k < nz; k++) {
+      const z = -gd / 2 + (k * gd) / nz
+      mullions.push(mat(gw / 2 + 0.01, (BASE_HEIGHT - 0.12) / 2, z, 0.035, BASE_HEIGHT - 0.14, 0.035))
+      mullions.push(mat(-gw / 2 - 0.01, (BASE_HEIGHT - 0.12) / 2, z, 0.035, BASE_HEIGHT - 0.14, 0.035))
+    }
+    // pilotis: colunas robustas de concreto aparente no perímetro
+    const columns: Matrix4[] = []
+    const cn = 8
+    for (let k = 0; k < cn; k++) {
+      const x = -POD_W / 2 + 0.15 + (k * (POD_W - 0.3)) / (cn - 1)
+      columns.push(mat(x, BASE_HEIGHT / 2, POD_D / 2 - 0.15, 0.3, BASE_HEIGHT, 0.3))
+      columns.push(mat(x, BASE_HEIGHT / 2, -(POD_D / 2 - 0.15), 0.3, BASE_HEIGHT, 0.3))
+    }
+    // mesas e cadeiras do café na praça
+    const tables: Matrix4[] = []
+    const chairs: Matrix4[] = []
+    const tz = POD_D / 2 + 0.85
+    for (let k = 0; k < 5; k++) {
+      const x = -2.6 + k * 1.3
+      tables.push(matR(x, 0.055, tz, 1, 1, 1))
+      chairs.push(mat(x - 0.2, 0.045, tz, 0.075, 0.09, 0.075))
+      chairs.push(mat(x + 0.2, 0.045, tz, 0.075, 0.09, 0.075))
+      chairs.push(mat(x, 0.045, tz + 0.2, 0.075, 0.09, 0.075))
+    }
+    // bananeiras: folhas longas e inclinadas em vasos
+    const leaves: Matrix4[] = []
+    const spots: [number, number][] = [
+      [-POD_W / 2 - 0.1, POD_D / 2 + 0.2],
+      [-1.4, POD_D / 2 + 0.45],
+      [1.4, POD_D / 2 + 0.45],
+      [POD_W / 2 + 0.1, POD_D / 2 + 0.2],
+      [-POD_W / 2 - 0.1, -POD_D / 2 - 0.2],
+      [POD_W / 2 + 0.1, -POD_D / 2 - 0.2],
+    ]
+    for (const [sx, sz] of spots) {
+      for (let k = 0; k < 7; k++) {
+        const ang = (k / 7) * Math.PI * 2 + rand()
+        const lean = 0.35 + rand() * 0.45
+        const h = 0.35 + rand() * 0.3
+        leaves.push(
+          matR(
+            sx + Math.cos(ang) * 0.05,
+            h / 2 + 0.03,
+            sz + Math.sin(ang) * 0.05,
+            0.07,
+            h,
+            0.012,
+            Math.sin(ang) * lean,
+            ang,
+            Math.cos(ang) * lean,
+          ),
+        )
+      }
+    }
+    return { mullions, columns, tables, chairs, leaves }
+  }, [])
+
+  return (
+    <group>
+      {/* praça pavimentada */}
+      <mesh position={[0, 0.006, 0.9]} receiveShadow>
+        <boxGeometry args={[POD_W + 4.5, 0.012, POD_D + 3.4]} />
+        <meshStandardMaterial color="#cdc7bb" roughness={1} />
+      </mesh>
+      {/* cortina de vidro do pódio (recuada atrás dos pilotis) */}
+      <mesh position={[0, (BASE_HEIGHT - 0.12) / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[POD_W - 0.5, BASE_HEIGHT - 0.12, POD_D - 0.7]} />
+        <meshStandardMaterial color={GLASS} roughness={0.12} metalness={0.45} emissive="#ffcf8a" emissiveIntensity={night * 0.8} />
+      </mesh>
+      <Inst m={parts.mullions} cast={false}>
+        {box}
+        <meshStandardMaterial color={WOOD} roughness={0.7} />
+      </Inst>
+      <Inst m={parts.columns}>
+        {box}
+        <meshStandardMaterial color={CONCRETE} roughness={0.95} />
+      </Inst>
+      {/* cobertura verde do pódio */}
+      <mesh position={[0, BASE_HEIGHT - 0.06, 0]} castShadow receiveShadow>
+        <boxGeometry args={[POD_W + 0.3, 0.12, POD_D + 0.3]} />
+        <meshStandardMaterial color={CREAM} roughness={0.95} />
+      </mesh>
+      <mesh position={[0, BASE_HEIGHT + 0.012, 0]} receiveShadow>
+        <boxGeometry args={[POD_W + 0.2, 0.03, POD_D + 0.2]} />
+        <meshStandardMaterial color="#5b9a4a" roughness={1} />
+      </mesh>
+      {/* café: mesas e cadeiras */}
+      <Inst m={parts.tables}>
+        <cylinderGeometry args={[0.1, 0.1, 0.11, 12]} />
+        <meshStandardMaterial color="#2a2d31" roughness={0.6} />
+      </Inst>
+      <Inst m={parts.chairs}>
+        {box}
+        <meshStandardMaterial color="#9a6b3f" roughness={0.8} />
+      </Inst>
+      {/* bananeiras */}
+      <Inst m={parts.leaves} cast={false}>
+        {box}
+        <meshStandardMaterial color="#4c9a3a" roughness={0.8} side={DoubleSide} />
+      </Inst>
+    </group>
+  )
+}
+
+/** Torre residencial de concreto claro, com tabuleiro de blocos em balanço, penthouse recuada e pódio largo. */
 export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, units, podium }: TowerProps) {
   const built = useMemo(() => buildParts(floors, seed), [floors, seed])
 
@@ -210,50 +410,54 @@ export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, unit
   }, [units, viewMode, selectedId])
   const parts = useMemo(() => {
     if (!eye) return built
-    const far = (mx: Matrix4) => {
+    const near = (mx: Matrix4, r: number) => {
       const dx = mx.elements[12] + position[0] - eye[0]
       const dy = mx.elements[13] + position[1] - eye[1]
       const dz = mx.elements[14] + position[2] - eye[2]
-      return dx * dx + dy * dy + dz * dz > 0.9 * 0.9
+      return dx * dx + dy * dy + dz * dz <= r * r
     }
-    const keep = (m: Matrix4[], c: Color[]) => {
-      const idx = m.map((x, i) => (far(x) ? i : -1)).filter((i) => i >= 0)
+    const dropNear = (m: Matrix4[], r: number) => m.filter((x) => !near(x, r))
+    const keep = (m: Matrix4[], c: Color[], r: number) => {
+      const idx = m.map((x, i) => (near(x, r) ? -1 : i)).filter((i) => i >= 0)
       return { m: idx.map((i) => m[i]), c: idx.map((i) => c[i]) }
     }
-    const pl = keep(built.plants, built.plantColors)
-    const fl = keep(built.flowers, built.flowerColors)
-    return { ...built, plants: pl.m, plantColors: pl.c, flowers: fl.m, flowerColors: fl.c }
+    const pl = keep(built.plants, built.plantColors, 0.9)
+    const fl = keep(built.flowers, built.flowerColors, 0.9)
+    const ca = keep(built.cascade, built.cascadeColors, 0.9)
+    return {
+      ...built,
+      // do bloco do próprio apartamento some a frente (parede, guarda-corpo, terra) para liberar o panorama
+      wallFront: dropNear(built.wallFront, 0.62),
+      railing: dropNear(built.railing, 0.62),
+      soil: dropNear(built.soil, 0.62),
+      plants: pl.m,
+      plantColors: pl.c,
+      flowers: fl.m,
+      flowerColors: fl.c,
+      cascade: ca.m,
+      cascadeColors: ca.c,
+    }
   }, [built, eye, position])
-  const levels = useMemo(() => towerLevels(floors, seed), [floors, seed])
 
+  const levels = useMemo(() => towerLevels(floors, seed), [floors, seed])
   const shaftHeight = floors * FLOOR_HEIGHT
   const core = useMemo(() => {
-    const g = new ExtrudeGeometry(roundedRect(CORE_WIDTH, CORE_DEPTH, 0.2), { depth: shaftHeight, bevelEnabled: false })
+    const g = new ExtrudeGeometry(roundedRect(CORE_WIDTH, CORE_DEPTH, 0.14), { depth: shaftHeight, bevelEnabled: false })
     g.rotateX(-Math.PI / 2)
     return g
   }, [shaftHeight])
   useLayoutEffect(() => () => core.dispose(), [core])
 
-  const columns = useMemo(() => {
+  // base simples das torres sem pódio: lobby de vidro e pilotis
+  const baseColumns = useMemo(() => {
     const out: Matrix4[] = []
     for (let k = 0; k < 7; k++) {
       const x = -2.1 + k * 0.7
-      out.push(mat(x, BASE_HEIGHT / 2, CORE_DEPTH / 2 + 0.12, 0.18, BASE_HEIGHT, 0.18))
-      out.push(mat(x, BASE_HEIGHT / 2, -(CORE_DEPTH / 2 + 0.12), 0.18, BASE_HEIGHT, 0.18))
+      out.push(mat(x, BASE_HEIGHT / 2, CORE_DEPTH / 2 + 0.12, 0.2, BASE_HEIGHT, 0.2))
+      out.push(mat(x, BASE_HEIGHT / 2, -(CORE_DEPTH / 2 + 0.12), 0.2, BASE_HEIGHT, 0.2))
     }
     return out
   }, [])
-
-  const crown = useMemo(() => {
-    const fins: Matrix4[] = []
-    for (let k = 0; k < 12; k++) {
-      const x = -CORE_WIDTH / 2 + 0.2 + k * ((CORE_WIDTH - 0.4) / 11)
-      const h = k % 2 === 0 ? 1.05 : 0.8
-      fins.push(mat(x, BASE_HEIGHT + shaftHeight + h / 2, CORE_DEPTH / 2 - 0.08, 0.17, h, 0.22))
-      fins.push(mat(x, BASE_HEIGHT + shaftHeight + h / 2, -(CORE_DEPTH / 2 - 0.08), 0.17, h, 0.22))
-    }
-    return fins
-  }, [shaftHeight])
 
   const unitsByFloor = useMemo(() => {
     const map = new Map<number, Unit[]>()
@@ -265,59 +469,71 @@ export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, unit
 
   return (
     <group position={position}>
-      {/* térreo: lobby de vidro com pilotis e marquise */}
-      <mesh position={[0, BASE_HEIGHT / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[CORE_WIDTH - 0.3, BASE_HEIGHT - 0.1, CORE_DEPTH - 0.3]} />
-        <meshStandardMaterial color="#26303b" roughness={0.15} metalness={0.4} emissive="#ffcf8a" emissiveIntensity={night * 0.7} />
-      </mesh>
-      <Inst m={columns}>
-        {box}
-        <meshStandardMaterial color={CONCRETE} roughness={0.9} />
-      </Inst>
-      <mesh position={[0, BASE_HEIGHT - 0.04, 0]} castShadow receiveShadow>
-        <boxGeometry args={[CORE_WIDTH + 0.6, 0.08, CORE_DEPTH + 0.6]} />
-        <meshStandardMaterial color={CREAM} roughness={0.9} />
-      </mesh>
+      {podium ? (
+        <Podium night={night} />
+      ) : (
+        <>
+          <mesh position={[0, BASE_HEIGHT / 2, 0]} castShadow receiveShadow>
+            <boxGeometry args={[CORE_WIDTH - 0.3, BASE_HEIGHT - 0.1, CORE_DEPTH - 0.3]} />
+            <meshStandardMaterial color={GLASS} roughness={0.15} metalness={0.4} emissive="#ffcf8a" emissiveIntensity={night * 0.7} />
+          </mesh>
+          <Inst m={baseColumns}>
+            {box}
+            <meshStandardMaterial color={CONCRETE} roughness={0.95} />
+          </Inst>
+          <mesh position={[0, BASE_HEIGHT - 0.04, 0]} castShadow receiveShadow>
+            <boxGeometry args={[CORE_WIDTH + 0.6, 0.08, CORE_DEPTH + 0.6]} />
+            <meshStandardMaterial color={CREAM} roughness={0.95} />
+          </mesh>
+        </>
+      )}
 
       {/* fuste em concreto claro com cantos arredondados */}
       <mesh geometry={core} position={[0, BASE_HEIGHT, 0]} castShadow receiveShadow>
-        <meshStandardMaterial color={CREAM} roughness={0.95} />
+        <meshStandardMaterial color={CORE_WALL} roughness={0.95} />
       </mesh>
       <Inst m={parts.floorBands} cast={false}>
         {box}
         <meshStandardMaterial color={CREAM_DARK} roughness={0.95} />
       </Inst>
 
-      {/* varandas em caixa (tijolo deslocado a cada andar) */}
-      <Inst m={parts.balconySlab}>
+      {/* blocos de varanda em balanço (tabuleiro) */}
+      <Inst m={parts.slab}>
         {box}
         <meshStandardMaterial color={CREAM} roughness={0.95} />
       </Inst>
-      <Inst m={parts.parapetFront}>
+      <Inst m={parts.wallFront}>
         {box}
         <meshStandardMaterial color={CREAM} roughness={0.95} />
       </Inst>
-      <Inst m={parts.parapetSide}>
+      <Inst m={parts.wallSide}>
         {box}
         <meshStandardMaterial color={CREAM_DARK} roughness={0.95} />
       </Inst>
-
+      <Inst m={parts.railing} cast={false}>
+        {box}
+        <meshStandardMaterial color={RAIL} roughness={0.5} metalness={0.4} />
+      </Inst>
       <Inst m={parts.soil} cast={false}>
         {box}
-        <meshStandardMaterial color="#3f4a35" roughness={1} />
+        <meshStandardMaterial color={SOIL} roughness={1} />
       </Inst>
 
-      {/* janelas: de noite parte delas acende */}
+      {/* janelas recuadas com moldura escura; de noite parte delas acende */}
+      <Inst m={parts.frames} cast={false}>
+        {box}
+        <meshStandardMaterial color="#14181e" roughness={0.6} />
+      </Inst>
       <Inst m={parts.windowsDark} cast={false}>
         {box}
-        <meshStandardMaterial color="#1f2a38" roughness={0.2} metalness={0.35} />
+        <meshStandardMaterial color={GLASS} roughness={0.2} metalness={0.35} />
       </Inst>
       <Inst m={parts.windowsLit} cast={false}>
         {box}
-        <meshStandardMaterial color="#1f2a38" roughness={0.2} metalness={0.35} emissive="#ffcf8a" emissiveIntensity={night * 1.4} />
+        <meshStandardMaterial color={GLASS} roughness={0.2} metalness={0.35} emissive="#ffcf8a" emissiveIntensity={night * 1.5} />
       </Inst>
 
-      {/* jardineiras */}
+      {/* jardineiras: arbustos, flores e folhagem caindo */}
       <Inst m={parts.plants} colors={parts.plantColors}>
         <icosahedronGeometry args={[1, 0]} />
         <meshStandardMaterial color="#ffffff" roughness={0.9} flatShading />
@@ -326,20 +542,12 @@ export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, unit
         <icosahedronGeometry args={[1, 0]} />
         <meshStandardMaterial color="#ffffff" roughness={0.8} flatShading />
       </Inst>
-
-      {/* topo: painéis acobreados entre aletas de concreto */}
-      <mesh position={[0, top + 0.42, 0]} castShadow>
-        <boxGeometry args={[CORE_WIDTH - 0.3, 0.84, CORE_DEPTH - 0.25]} />
-        <meshStandardMaterial color={COPPER} roughness={0.55} metalness={0.25} emissive="#ffb070" emissiveIntensity={night * 0.5} />
-      </mesh>
-      <Inst m={crown}>
+      <Inst m={parts.cascade} colors={parts.cascadeColors} cast={false}>
         {box}
-        <meshStandardMaterial color={CREAM} roughness={0.95} />
+        <meshStandardMaterial color="#ffffff" roughness={0.9} />
       </Inst>
-      <mesh position={[0, top + 0.88, 0]} castShadow>
-        <boxGeometry args={[CORE_WIDTH - 0.5, 0.08, CORE_DEPTH - 0.4]} />
-        <meshStandardMaterial color={CREAM} roughness={0.9} />
-      </mesh>
+
+      <Crown top={top} night={night} />
 
       {/* volumes translúcidos clicáveis das unidades */}
       {levels.map((l, i) =>
@@ -349,24 +557,7 @@ export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, unit
           </group>
         ) : null,
       )}
-
-      {/* anexo baixo com teto verde e fachada de vidro */}
-      {podium && (
-        <group position={[-CORE_WIDTH / 2 - 1.7, 0, 0.9]}>
-          <mesh position={[0, 0.36, 0]} castShadow receiveShadow>
-            <boxGeometry args={[3.4, 0.72, 2.3]} />
-            <meshStandardMaterial color={CREAM} roughness={0.95} />
-          </mesh>
-          <mesh position={[0, 0.34, 1.16]} castShadow>
-            <boxGeometry args={[3.0, 0.52, 0.04]} />
-            <meshStandardMaterial color="#26303b" roughness={0.15} metalness={0.4} emissive="#ffcf8a" emissiveIntensity={night * 0.8} />
-          </mesh>
-          <mesh position={[0, 0.745, 0]} receiveShadow>
-            <boxGeometry args={[3.5, 0.06, 2.4]} />
-            <meshStandardMaterial color="#5b9a4a" roughness={1} />
-          </mesh>
-        </group>
-      )}
     </group>
   )
 }
+

@@ -207,13 +207,18 @@ Regras:
 
 ## 🏛️ Prédio de Referência (arquitetura implementada)
 
-A torre segue o render de referência enviado pelo dono do projeto: concreto claro, varandas em caixa com jardineiras florescidas, topo acobreado, térreo de vidro com pilotis e anexo baixo com teto verde.
+Especificação enviada pelo dono do projeto (a partir dos renders de referência), implementada de forma procedural em `src/components/scene/Tower.tsx` e `src/lib/tower.ts`:
 
-- **Fachada:** núcleo retangular de cantos arredondados; uma varanda em caixa por apartamento nas duas faces longas, e uma em cada empena lateral. Os andares ímpares deslocam as varandas meio vão (padrão de tijolo, `balconyShift` em `src/lib/tower.ts`).
-- **Peças repetidas** (varandas, parapeitos, janelas, plantas, flores) são `InstancedMesh`, gerados de forma determinística em `buildParts` (`src/components/scene/Tower.tsx`).
-- **Vista da varanda** usa a face da orientação da unidade (Mar = fundos); as plantas coladas na câmera somem para não tapar o panorama.
-- **Camada de status:** "disponível" é sutil para a fachada clara aparecer; "reservado" e "vendido" são fortes.
-- **Sol:** ao meio-dia o sol ilumina a face da frente (azimute 28°), como na referência.
+1. **Estrutura e proporções:** torre esbelta e retangular de ~20 a 25 pisos; acabamento em concreto/reboco claro texturizado (off-white / cinza claro).
+2. **Sistema de varandas (marca do prédio):** **tabuleiro de xadrez** assimétrico de blocos volumétricos de concreto em balanço, **nas quatro fachadas**. Cada célula da grade tem o tamanho de um vão × um andar (célula quase quadrada); num andar as colunas alternadas têm bloco e o andar de cima inverte (`facadeCells`). Cada bloco é maciço (laje inferior espessa, paredes grossas), com **guarda-corpo fino** de metal escuro e **jardineira embutida na borda** (arbustos, flores coloridas e folhagem que cai pela frente).
+3. **Janelas:** ficam nas células vazias, **bem recuadas** atrás dos blocos, com **molduras escuras**; à noite, parte delas acende em tom quente.
+4. **Coroamento:** o último andar **recua em penthouse**: caixa de vidro de piso a teto, caixilho de **bronze**, laje de cobertura plana com fachada de **madeira** e terraço em volta.
+5. **Pódio:** base **larga e de pé-direito duplo**, sobre **pilotis robustos** de concreto aparente, cortina de vidro com caixilhos de **madeira quente**, cobertura verde, **café com mesas e cadeiras**, bananeiras em vasos e **praça pavimentada**.
+
+Detalhes de implementação:
+- Peças repetidas (blocos, janelas, plantas) são `InstancedMesh` gerados de forma determinística em `buildParts`.
+- **Vista da varanda** usa o bloco mais próximo da orientação da unidade (Mar = fundos); do bloco do próprio apartamento somem a parede frontal, o guarda-corpo e a vegetação para liberar o panorama.
+- **Sol:** ao meio-dia ilumina a face da frente (azimute 28°), como na referência.
 
 **Pendências da etapa 5 (revisão):**
 - Lightbox da galeria: foco no botão fechar, armadilha de foco, `inert` no fundo e `overscroll-contain`; restaurar foco ao fechar.
@@ -240,4 +245,4 @@ Fonte: página do projeto em vizta.pt e brochura em PDF (dados públicos, sujeit
 
 **Regras de interface definidas pelo dono do projeto:**
 - Cores de status das unidades (disponível, reservado, vendido) **só aparecem quando o botão de marcar correspondente está ativo**; por padrão a fachada fica limpa e as unidades continuam clicáveis.
-- As varandas formam uma **malha contínua** (caixas encostadas, sem vãos, fileiras deslocadas meio vão a cada andar, pontas fechadas por meias-caixas).
+- As varandas formam um **tabuleiro de xadrez** de blocos em balanço (ver especificação do prédio acima); não são faixas contínuas.
