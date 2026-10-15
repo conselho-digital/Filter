@@ -225,3 +225,19 @@ A torre segue o render de referência enviado pelo dono do projeto: concreto cla
 - Galeria: trocar os renders provisórios pelos renders reais do empreendimento (remover metadados EXIF antes de publicar).
 - Walk 3D e botão de captura de tela (ainda não implementados).
 - Prédio: trocar a geometria procedural por GLB real quando existir (manter a interface de `Unit`); crédito e uso da imagem de referência a confirmar com o dono.
+
+## 📌 Empreendimento de Referência: Flower Tower Camellia (Vizta)
+
+Fonte: página do projeto em vizta.pt e brochura em PDF (dados públicos, sujeitos a conferência com o dono do projeto).
+
+- **Local:** Leça da Palmeira, Porto (Portugal), junto ao mar; cerca de 20 min do Porto e 8 min a pé do centro de Leça.
+- **Arquitetura:** OODA. **Torre de 21 pisos**; a página cita 133 apartamentos e a brochura, 134.
+- **Tipologias (brochura):** T1 Studio, T1 Smart, T2 Smart e T2. **Penthouses duplex T3 e T4** (ainda à venda, com grandes terraços).
+- **Comodidades:** varandas e terraços, estacionamento e arrecadações, pré-instalação para carregador elétrico, sala multiusos de condomínio (cowork, festas, reuniões), espaço fitness, lobby com duplo pé-direito, hortas e terraços comuns.
+- **Plantas desenhadas:** o site e a brochura NÃO publicam plantas por tipologia, só renders de interiores mobiliados. As plantas da plataforma são procedurais e provisórias (T1 a T3).
+- **Próximo passo combinado:** o dono do projeto enviará uma versão mobiliada das plantas para modelarmos em 3D na plataforma.
+- **Decisão pendente:** alinhar as tipologias do inventário mockado às reais (hoje: 5 apartamentos por andar, T1 a T3, 22 andares, 110 unidades).
+
+**Regras de interface definidas pelo dono do projeto:**
+- Cores de status das unidades (disponível, reservado, vendido) **só aparecem quando o botão de marcar correspondente está ativo**; por padrão a fachada fica limpa e as unidades continuam clicáveis.
+- As varandas formam uma **malha contínua** (caixas encostadas, sem vãos, fileiras deslocadas meio vão a cada andar, pontas fechadas por meias-caixas).

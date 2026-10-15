@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Maximize2, Minus, Plus, X } from 'lucide-react'
 import { UNITS_BY_ID, UNITS_PER_FLOOR } from '../../data/units'
 import { buildFloorPlan } from '../../lib/floorplan'
-import { formatArea } from '../../lib/status'
+import { formatArea, typology } from '../../lib/status'
 import { useStore } from '../../store/useStore'
 
 const SCALE = 48 // px por metro
@@ -123,7 +123,9 @@ export function BlueprintView() {
           <p className="text-xs font-medium uppercase tracking-[0.25em] text-[#0a0f1d]/50">
             Pavimento {unit.floor}
           </p>
-          <h2 className="mt-1 text-2xl font-light uppercase tracking-[0.15em]">Apartamento {unit.id}</h2>
+          <h2 className="mt-1 text-2xl font-light uppercase tracking-[0.15em]">
+            {typology(unit.bedrooms)} · Apartamento {unit.id}
+          </h2>
           <p className="mt-1 text-sm text-[#0a0f1d]/60">
             área total {formatArea(unit.area)} · {unit.bedrooms} {unit.bedrooms === 1 ? 'quarto' : 'quartos'} · {unit.orientation}
           </p>

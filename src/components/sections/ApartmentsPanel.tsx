@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { UNITS } from '../../data/units'
 import { BOUNDS, isDefaultFilters, matchesFilters, MAX_QUERY_LENGTH } from '../../lib/filters'
-import { formatArea, formatPrice, STATUS_COLOR, STATUS_LABEL } from '../../lib/status'
+import { formatArea, formatPrice, STATUS_COLOR, STATUS_LABEL, typology } from '../../lib/status'
 import { useStore } from '../../store/useStore'
 import { SectionShell } from './SectionShell'
 
@@ -170,7 +170,7 @@ export function ApartmentsPanel() {
                 <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: STATUS_COLOR[u.status] }} aria-hidden />
                 <span className="w-16 font-medium tabular-nums text-white">{u.id}</span>
                 <span className="flex-1 text-sm text-white/70">
-                  {u.floor}º andar · {u.bedrooms} {u.bedrooms === 1 ? 'quarto' : 'quartos'} · {formatArea(u.area)}
+                  {typology(u.bedrooms)} · {u.floor}º andar · {formatArea(u.area)}
                 </span>
                 <span className="sr-only">{STATUS_LABEL[u.status]}</span>
               </button>

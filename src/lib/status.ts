@@ -15,5 +15,8 @@ export const STATUS_LABEL: Record<UnitStatus, string> = {
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 const m2 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+/** Tipologia no padrão português: T1, T2, T3... (número de quartos). */
+export const typology = (bedrooms: number) => `T${bedrooms}`
+
 export const formatPrice = (v: number) => brl.format(v)
 export const formatArea = (v: number) => `${m2.format(v)} m²`
