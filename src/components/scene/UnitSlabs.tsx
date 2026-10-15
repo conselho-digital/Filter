@@ -29,6 +29,7 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
             position={[unitLocalX(u.slot), SLAB_THICKNESS + FLOOR_HEIGHT / 2 - SLAB_THICKNESS / 2, 0]}
             onClick={(e: ThreeEvent<MouseEvent>) => {
               e.stopPropagation()
+              setHovered(null) // em toque não há pointerout: evita realce preso
               selectUnit(u.id)
             }}
             onPointerOver={(e: ThreeEvent<PointerEvent>) => {

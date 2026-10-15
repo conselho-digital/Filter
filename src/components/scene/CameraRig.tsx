@@ -28,14 +28,17 @@ export function CameraRig() {
   const camera = useThree((s) => s.camera)
   const invalidate = useThree((s) => s.invalidate)
   const flight = useRef<Flight | null>(null)
-  const first = useRef(true)
+  const prevSelected = useRef<string | null | undefined>(undefined)
 
   useEffect(() => {
     if (!controls) return
-    if (first.current) {
-      first.current = false
+    // primeira leitura só registra; depois só voa quando a seleção realmente muda
+    if (prevSelected.current === undefined) {
+      prevSelected.current = selectedId
       return
     }
+    if (prevSelected.current === selectedId) return
+    prevSelected.current = selectedId
     const toTarget = selectedId
       ? new Vector3(...unitWorldPosition(UNITS_BY_ID.get(selectedId)!))
       : AERIAL_TARGET.clone()
@@ -62,7 +65,8 @@ export function CameraRig() {
   useFrame((_, delta) => {
     const f = flight.current
     if (!f || !controls) return
-    f.t = Math.min(1, f.t + delta / DURATION)
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    f.t = reduced ? 1 : Math.min(1, f.t + delta / DURATION)
     const k = ease(f.t)
     // mantém o azimute atual e só muda alvo e distância
     const dir = camera.position.clone().sub(controls.target).normalize()

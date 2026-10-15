@@ -171,3 +171,20 @@ Regras:
 - Só avance se os dois agentes disserem **APROVADO** ou **APROVADO COM RESSALVAS**.
 - A skill `strix-pentest` (em `.claude/skills/`) só pode ser usada contra alvos que o dono do projeto autorizou, como este próprio projeto.
 - Fluxo de git: commits pequenos e push direto na `main`.
+
+## 📝 Pendências Registradas (achados Médios e Baixos das revisões)
+
+**Backend (requisito antes de dados reais):**
+- Preço e status vêm só do servidor, com autorização por perfil. Nunca embutir dados comerciais reais no bundle.
+- Validar `id` no servidor; renderizar textos como texto (nunca `innerHTML`, nem no `Html` do drei).
+- CSP, `Referrer-Policy` e `frame-ancestors` como cabeçalhos HTTP; listar domínios de mapa e mídia quando entrarem.
+
+**Performance e polimento:**
+- Instanciar lajes, prédios, árvores e unidades (`InstancedMesh`) e compartilhar materiais por status.
+- Code-splitting da cena (bundle acima de 1 MB).
+- Tratar perda de contexto WebGL (ErrorBoundary) e liberar o contexto do teste de WebGL.
+- Voo de câmera: interpolar também o azimute para a fachada da unidade; deslocar o alvo para fora da área do painel.
+- Selecionar só unidades visíveis (oclusão) e usar `occlude` na etiqueta; unidades das pontas saem dos cantos arredondados do núcleo.
+- Foco gerenciado no painel e alternativa de teclado/lista para escolher unidades.
+- Névoa e céu com tons diferentes no horizonte; estrelas com fade; carregar a fonte (Inter/Montserrat).
+- Reset de sessão por inatividade no modo totem.

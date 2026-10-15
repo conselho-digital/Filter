@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Eye, EyeOff, X } from 'lucide-react'
 import { UNITS_BY_ID } from '../../data/units'
 import { formatArea, formatPrice, STATUS_COLOR, STATUS_LABEL } from '../../lib/status'
@@ -15,6 +16,16 @@ export function UnitPanel() {
   const togglePrice = useStore((s) => s.togglePrice)
 
   const unit = selectedId ? UNITS_BY_ID.get(selectedId) : undefined
+
+  useEffect(() => {
+    if (!selectedId) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') selectUnit(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selectedId, selectUnit])
+
   if (!unit) return null
   const priceShown = priceShownIds.includes(unit.id)
 
@@ -29,13 +40,13 @@ export function UnitPanel() {
   return (
     <aside
       aria-label={`Detalhes do apartamento ${unit.id}`}
-      className="glass pointer-events-auto absolute bottom-0 right-0 top-24 z-10 flex w-[min(100vw,380px)] flex-col gap-5 rounded-l-3xl p-6 max-md:top-auto max-md:max-h-[60%] max-md:w-full max-md:rounded-l-none max-md:rounded-t-3xl"
+      className="glass pointer-events-auto absolute bottom-0 right-0 top-24 z-10 flex w-[min(100vw,380px)] flex-col gap-5 overflow-y-auto overscroll-contain rounded-l-3xl p-6 max-md:top-auto max-md:max-h-[60%] max-md:w-full max-md:rounded-l-none max-md:rounded-t-3xl"
     >
       <header className="flex items-center gap-2">
         <button type="button" aria-label="Unidade anterior" className={iconBtn} onClick={() => stepUnit(-1)}>
           <ChevronLeft size={22} />
         </button>
-        <h2 className="flex-1 text-center text-lg font-medium uppercase tracking-[0.18em] text-white">
+        <h2 aria-live="polite" className="flex-1 text-center text-lg font-medium uppercase tracking-[0.18em] text-white">
           Apartamento {unit.id}
         </h2>
         <button type="button" aria-label="Próxima unidade" className={iconBtn} onClick={() => stepUnit(1)}>
@@ -65,7 +76,6 @@ export function UnitPanel() {
 
       <button
         type="button"
-        aria-pressed={priceShown}
         onClick={() => togglePrice(unit.id)}
         className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-brand px-5 text-base font-medium text-white transition-colors hover:bg-brand/85 focus-visible:outline-2 focus-visible:outline-white"
       >

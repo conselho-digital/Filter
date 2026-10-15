@@ -1,5 +1,5 @@
 import type { Unit } from '../data/units'
-import { UNITS_PER_FLOOR } from '../data/units'
+import { MAIN_TOWER_FLOORS, UNITS_PER_FLOOR } from '../data/units'
 
 export const FLOOR_HEIGHT = 0.62
 export const SLAB_THICKNESS = 0.12
@@ -13,7 +13,7 @@ export interface TowerConfig {
 }
 
 /** Torre principal, a única com unidades à venda nesta etapa. */
-export const MAIN_TOWER: TowerConfig = { position: [0, 0, 0], floors: 22, seed: 1 }
+export const MAIN_TOWER: TowerConfig = { position: [0, 0, 0], floors: MAIN_TOWER_FLOORS, seed: 1 }
 
 export interface Level {
   y: number
