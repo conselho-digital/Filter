@@ -255,3 +255,10 @@ O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de reco
 - **Mobília procedural por cômodo:** sala (TV, sofá em L, mesa de centro, tapete, jantar com aparador), cozinha aberta (bancadas, ilha com banquetas, geladeira), serviço, suíte e quartos (cama, criado-mudo, guarda-roupa, mesa de estudo), banho (bancada, vaso, box de vidro) e varanda (lounge, mesa, bananeiras).
 - **Controles:** arrastar para girar, roda e pinça para zoom, botão de etiquetas (nomes e medidas dos cômodos), recentralizar e Esc para voltar.
 - **Próximo passo:** o dono enviará a planta mobiliada das outras tipologias; trocar os móveis procedurais por modelos 3D (GLB) quando existirem e ajustar a disposição dos móveis a cada planta enviada.
+
+## 🌆 Cena: Torre Única e Terreno a partir da Foto Aérea
+
+- **Uma só torre** (`MAIN_TOWER`); as outras duas e `City.tsx` foram removidas.
+- **Dimensões:** `FLOOR_HEIGHT=0.62`, núcleo 7,4 × 5,0; cada bloco de varanda ocupa o andar inteiro; células alternam em xadrez (há células e andares sem varanda).
+- **Terreno** (`Terrain.tsx`, `src/data/terrain.ts`, `public/terrain/aerial.jpg`): foto aérea do dono girada 90° (oeste/mar em -z); `photoToWorld(u,v)=[-(v-400)*S,(u-375)*S]`, `S≈0,155` unidade/px. Chão com a foto (repetição espelhada), 35 prédios 3D extrudados (fachada em canvas, janelas acesas à noite), 499 árvores instanciadas, guindaste, praia e mar além da borda.
+- **Pendências:** resolução da foto é limitada; fossos circulares da obra só existem na textura; torre não alinhada à grade das fundações; confirmar direitos de uso da foto (manter repositório privado).

@@ -41,9 +41,10 @@ const GREENS = ['#3f7d3a', '#4d8f43', '#5f9c4e', '#35692f', '#6aa858']
 const FLOWERS = ['#d9468f', '#e8c63a', '#9b59b6', '#e8734a', '#f0a0c0']
 
 // bloco de varanda: laje inferior espessa, paredes grossas, topo aberto com guarda-corpo fino
-const SLAB_Y = 0.07 // centro da laje (de 0,02 a 0,12)
-const WALL_Y0 = 0.12 // base das paredes
-const WALL_H = 0.45 // altura das paredes (topo em 0,57)
+// o bloco ocupa o andar inteiro: laje de 0 a 0,12 e paredes até o topo do andar (0,62)
+const SLAB_Y = 0.06
+const WALL_Y0 = 0.12
+const WALL_H = FLOOR_HEIGHT - 0.12
 const WALL = 0.07
 
 // pódio largo e duplo
@@ -113,12 +114,12 @@ function buildParts(floors: number, seed: number): Parts {
       cy + ly,
       cz - lx * s + lz * c,
     ]
-    p.slab.push(mat(...at(0, SLAB_Y, 0), w, 0.1, D, rot))
+    p.slab.push(mat(...at(0, SLAB_Y, 0), w, 0.12, D, rot))
     p.wallFront.push(mat(...at(0, WALL_Y0 + WALL_H / 2, D / 2 - WALL / 2), w, WALL_H, WALL, rot))
     p.wallSide.push(mat(...at(w / 2 - WALL / 2, WALL_Y0 + WALL_H / 2, 0), WALL, WALL_H, D, rot))
     p.wallSide.push(mat(...at(-w / 2 + WALL / 2, WALL_Y0 + WALL_H / 2, 0), WALL, WALL_H, D, rot))
     // guarda-corpo fino de metal escuro no topo da parede frontal
-    p.railing.push(mat(...at(0, WALL_Y0 + WALL_H + 0.035, D / 2 - 0.012), w - 0.02, 0.07, 0.014, rot))
+    p.railing.push(mat(...at(0, WALL_Y0 + WALL_H + 0.03, D / 2 - 0.012), w - 0.02, 0.06, 0.014, rot))
     // terra da jardineira
     p.soil.push(mat(...at(0, WALL_Y0 + 0.03, D / 2 - WALL - 0.09), w - 2 * WALL, 0.06, 0.16, rot))
     if (rand() < 0.6) {
@@ -311,7 +312,7 @@ function Podium({ night }: { night: number }) {
     const chairs: Matrix4[] = []
     const tz = POD_D / 2 + 0.85
     for (let k = 0; k < 5; k++) {
-      const x = -2.6 + k * 1.3
+      const x = -POD_W * 0.36 + k * POD_W * 0.18
       tables.push(matR(x, 0.055, tz, 1, 1, 1))
       chairs.push(mat(x - 0.2, 0.045, tz, 0.075, 0.09, 0.075))
       chairs.push(mat(x + 0.2, 0.045, tz, 0.075, 0.09, 0.075))
@@ -354,8 +355,8 @@ function Podium({ night }: { night: number }) {
     <group>
       {/* praça pavimentada */}
       <mesh position={[0, 0.006, 0.9]} receiveShadow>
-        <boxGeometry args={[POD_W + 4.5, 0.012, POD_D + 3.4]} />
-        <meshStandardMaterial color="#cdc7bb" roughness={1} />
+        <boxGeometry args={[POD_W + 1.8, 0.012, POD_D + 1.8]} />
+        <meshStandardMaterial color="#bdb6a8" roughness={1} />
       </mesh>
       {/* cortina de vidro do pódio (recuada atrás dos pilotis) */}
       <mesh position={[0, (BASE_HEIGHT - 0.12) / 2, 0]} castShadow receiveShadow>

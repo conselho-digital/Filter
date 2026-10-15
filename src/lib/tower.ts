@@ -3,12 +3,12 @@ import { MAIN_TOWER_FLOORS, UNITS_PER_FLOOR } from '../data/units'
 
 /** altura do térreo (lobby em vidro com pilotis) sob o primeiro andar */
 export const BASE_HEIGHT = 0.9
-/** largura de um vão (um apartamento) na fachada */
-export const BALCONY_DEPTH = 0.62
+/** profundidade dos blocos de varanda (quase a largura de uma célula) */
+export const BALCONY_DEPTH = 0.74
 export const FLOOR_HEIGHT = 0.62
 export const SLAB_THICKNESS = 0.12
-export const CORE_WIDTH = 4.4
-export const CORE_DEPTH = 3.1
+export const CORE_WIDTH = 7.4
+export const CORE_DEPTH = 5.0
 
 export interface TowerConfig {
   position: [number, number, number]
@@ -44,7 +44,8 @@ export function towerLevels(floors: number, _seed: number): Level[] {
  * `n` colunas por fachada e o passo real entre os centros.
  */
 export function balconyGrid(length: number) {
-  const n = Math.max(2, Math.round(length / FLOOR_HEIGHT))
+  // célula um pouco mais larga que alta (como no render: ~1,3 : 1)
+  const n = Math.max(2, Math.round(length / (FLOOR_HEIGHT * 1.3)))
   return { n, pitch: length / n }
 }
 

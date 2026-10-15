@@ -14,8 +14,8 @@ const MAX_YAW = 1.3 // rad de giro para cada lado, a partir da direção da vist
 const MIN_PITCH = -0.5
 const MAX_PITCH = 0.6
 const DRAG_SPEED = 0.004
-const AERIAL_TARGET = new Vector3(0, 7, 0)
-const AERIAL_DISTANCE = 42
+const AERIAL_TARGET = new Vector3(0, 8, 0)
+const AERIAL_DISTANCE = 66
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
 const orient = (yaw: number, pitch: number) => new Quaternion().setFromEuler(new Euler(pitch, yaw, 0, 'YXZ'))

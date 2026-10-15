@@ -14,7 +14,10 @@ export function Environment({ sky }: { sky: SkyState }) {
   }, [sky, invalidate])
 
   // à noite o ambiente clareia para o azul-lua, senão o concreto claro fica preto
-  const ambient = useMemo(() => sky.skyColor.clone().lerp(new Color('#9fb4d8'), sky.night * 0.65), [sky])
+  const ambient = useMemo(
+    () => sky.skyColor.clone().lerp(new Color('#ffffff'), 0.45 * (1 - sky.night)).lerp(new Color('#9fb4d8'), sky.night * 0.65),
+    [sky],
+  )
 
   const [sx, sy, sz] = sky.sunDir
   // intensidade cai suavemente a zero conforme o sol desce do horizonte
@@ -23,36 +26,31 @@ export function Environment({ sky }: { sky: SkyState }) {
   return (
     <>
       <color attach="background" args={[sky.skyColor]} />
-      <fog attach="fog" args={[sky.fogColor, 40, 160]} />
+      <fog attach="fog" args={[sky.fogColor, 120, 520]} />
       <ambientLight intensity={sky.ambientIntensity} color={ambient} />
       <directionalLight
-        position={[sx * 50, Math.max(sy, 0.02) * 50, sz * 50]}
+        position={[sx * 90, Math.max(sy, 0.02) * 90, sz * 90]}
         color={sky.sunColor}
         intensity={Math.max(0.08, sky.sunIntensity * sunFade)}
         castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-30}
-        shadow-camera-right={30}
-        shadow-camera-top={30}
-        shadow-camera-bottom={-30}
-        shadow-camera-far={140}
+        shadow-mapSize={[4096, 4096]}
+        shadow-camera-left={-55}
+        shadow-camera-right={55}
+        shadow-camera-top={55}
+        shadow-camera-bottom={-55}
+        shadow-camera-far={260}
         shadow-bias={-0.0004}
       />
       {sky.night > 0.5 && <Stars radius={150} depth={40} count={2500} factor={4} fade />}
 
-      {/* terreno */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 35]} receiveShadow>
-        <planeGeometry args={[400, 150]} />
-        <meshStandardMaterial color="#8a9a78" roughness={1} emissive="#8a9a78" emissiveIntensity={sky.night * 0.1} />
-      </mesh>
-      {/* faixa de areia */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, -43]}>
-        <planeGeometry args={[400, 6]} />
+      {/* faixa de areia entre o terreno da foto e o mar (a oeste, para -z) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -97]}>
+        <planeGeometry args={[700, 8]} />
         <meshStandardMaterial color="#d9c9a0" roughness={1} />
       </mesh>
       {/* mar */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -140]}>
-        <planeGeometry args={[800, 200]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -300]}>
+        <planeGeometry args={[1600, 400]} />
         <meshStandardMaterial color={sky.seaColor} roughness={0.15} metalness={0.4} />
       </mesh>
     </>

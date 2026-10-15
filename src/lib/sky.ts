@@ -28,7 +28,7 @@ interface Key {
 
 const KEYS: Key[] = [
   { t: 0.0, elevation: 7, azimuth: 55, sun: '#ffb27a', sky: '#f2a98c', fog: '#e9b9a3', sea: '#4d7a9a', sunI: 1.6, ambI: 0.65, night: 0.25 },
-  { t: 0.33, elevation: 52, azimuth: 28, sun: '#fff4e0', sky: '#79b6f0', fog: '#bcd8f2', sea: '#1d6fa5', sunI: 3.4, ambI: 0.85, night: 0 },
+  { t: 0.33, elevation: 52, azimuth: 28, sun: '#fff4e0', sky: '#79b6f0', fog: '#bcd8f2', sea: '#1d6fa5', sunI: 3.2, ambI: 1.15, night: 0 },
   { t: 0.66, elevation: 6, azimuth: -55, sun: '#ff8a3d', sky: '#f08a5d', fog: '#e3a37b', sea: '#2b5d86', sunI: 1.8, ambI: 0.65, night: 0.15 },
   { t: 1.0, elevation: -20, azimuth: -70, sun: '#7a90d0', sky: '#0f1c42', fog: '#16264f', sea: '#12284d', sunI: 0.5, ambI: 0.95, night: 1 },
 ]
