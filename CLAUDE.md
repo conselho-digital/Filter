@@ -196,3 +196,11 @@ Regras:
 - `stepUnit` ignora filtros (ajustar na etapa 5) e mantém preços revelados ao navegar.
 - Impressão no quiosque: `--kiosk-printing` com impressora fixa ou PDF gerado no servidor; imprimir preço só por rota dedicada, nunca dentro de `.print-area`.
 - Enviar planta e Agendar/Contato: validação no servidor, rate limit, anti-spam, sem dados pessoais em logs, aviso de privacidade e consentimento (LGPD), chaves só no servidor.
+
+**Pendências da etapa 4:**
+- Voo reto da câmera até a varanda pode atravessar a torre se a órbita estiver do lado oposto: passar por ponto externo ou interpolar o azimute.
+- Último andar sem laje de cobertura completa (sem teto de varanda nas 5 unidades do andar 22).
+- Foco: levar o foco à barra da varanda ao abrir e devolvê-lo ao botão "Window View" ao fechar.
+- Dica "Arraste para olhar ao redor" some no primeiro `pointermove`; esconder só no arrasto real. Textos de 14 px e botões estreitos na barra (totem e 360 px).
+- Resíduo de inércia da órbita ao reabilitar os controles; `timeOfDay` fora do reset por inatividade.
+- CSP e cabeçalhos de segurança em produção (ver pendências de backend).

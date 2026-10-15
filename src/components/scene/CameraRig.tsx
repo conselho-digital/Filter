@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Vector3 } from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { UNITS_BY_ID } from '../../data/units'
+import { cameraState } from '../../lib/cameraState'
 import { unitWorldPosition } from '../../lib/tower'
 import { useStore } from '../../store/useStore'
 
@@ -39,6 +40,8 @@ export function CameraRig() {
     }
     if (prevSelected.current === selectedId) return
     prevSelected.current = selectedId
+    // a vista da varanda (ou a volta dela) é a dona da câmera
+    if (cameraState.windowView) return
     const toTarget = selectedId
       ? new Vector3(...unitWorldPosition(UNITS_BY_ID.get(selectedId)!))
       : AERIAL_TARGET.clone()
@@ -63,6 +66,7 @@ export function CameraRig() {
   }, [controls])
 
   useFrame((_, delta) => {
+    if (cameraState.windowView) flight.current = null
     const f = flight.current
     if (!f || !controls) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches

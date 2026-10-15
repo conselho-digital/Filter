@@ -1,5 +1,8 @@
 import { create } from 'zustand'
 import { UNITS, UNITS_BY_ID } from '../data/units'
+import { DEFAULT_FILTERS, matchesFilters, sanitizeQuery, type Filters } from '../lib/filters'
+
+export type Section = 'apartments' | 'compare' | 'location' | 'gallery' | 'highlights'
 
 export type WindowViewPreset = 'view1' | 'view2'
 
@@ -18,6 +21,9 @@ interface AppState {
   /** pedido de impressão aguardando a planta montar */
   printRequested: boolean
   windowViewPreset: WindowViewPreset
+  filters: Filters
+  /** seção aberta pelo menu inferior (cobre a maquete) */
+  section: Section | null
   setViewMode: (mode: ViewMode) => void
   setTimeOfDay: (t: number) => void
   selectUnit: (id: string | null) => void
@@ -26,6 +32,9 @@ interface AppState {
   togglePrice: (id: string) => void
   openBlueprint: () => void
   openWindowView: () => void
+  setFilters: (patch: Partial<Filters>) => void
+  resetFilters: () => void
+  openSection: (s: Section | null) => void
   closeWindowView: () => void
   setWindowViewPreset: (p: WindowViewPreset) => void
   closeBlueprint: () => void
@@ -51,6 +60,8 @@ export const useStore = create<AppState>((set, get) => ({
   favoriteIds: [],
   printRequested: false,
   windowViewPreset: 'view1',
+  filters: DEFAULT_FILTERS,
+  section: null,
   setViewMode: (viewMode) =>
     set((s) => {
       if (viewMode === 'aerial' || viewMode === 'tower') {
@@ -79,10 +90,11 @@ export const useStore = create<AppState>((set, get) => ({
     })
   },
   stepUnit: (delta) => {
-    const { selectedUnitId } = get()
-    const i = UNITS.findIndex((u) => u.id === selectedUnitId)
+    const { selectedUnitId, filters } = get()
+    const pool = UNITS.filter((u) => u.id === selectedUnitId || matchesFilters(u, filters))
+    const i = pool.findIndex((u) => u.id === selectedUnitId)
     if (i < 0) return
-    const next = UNITS[(i + delta + UNITS.length) % UNITS.length]
+    const next = pool[(i + delta + pool.length) % pool.length]
     set({ selectedUnitId: next.id, hoveredUnitId: null })
   },
   setHoveredUnit: (id) => set({ hoveredUnitId: id }),
@@ -105,7 +117,25 @@ export const useStore = create<AppState>((set, get) => ({
       favoriteIds: [],
       printRequested: false,
       windowViewPreset: 'view1',
+      filters: DEFAULT_FILTERS,
+      section: null,
     }),
+  setFilters: (patch) =>
+    set((s) => ({
+      filters: {
+        ...s.filters,
+        ...patch,
+        ...(patch.query !== undefined ? { query: sanitizeQuery(patch.query) } : {}),
+      },
+    })),
+  resetFilters: () => set({ filters: DEFAULT_FILTERS }),
+  openSection: (section) =>
+    set((s) =>
+      // seções cobrem a maquete: fecham unidade/planta/varanda para o estado ficar coerente
+      section
+        ? { section, ...(s.viewMode === 'windowView' ? {} : { viewMode: s.selectedUnitId ? 'unit' : s.viewMode }) }
+        : { section: null },
+    ),
   openWindowView: () =>
     set((s) => (s.selectedUnitId ? { viewMode: 'windowView', windowViewPreset: 'view1', hoveredUnitId: null } : {})),
   closeWindowView: () => set((s) => (s.viewMode === 'windowView' ? { viewMode: 'unit' } : {})),

@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Euler, MathUtils, PerspectiveCamera, Quaternion, Vector3 } from 'three'
+import { Euler, Matrix4, MathUtils, PerspectiveCamera, Quaternion, Vector3 } from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { UNITS_BY_ID } from '../../data/units'
+import { cameraState } from '../../lib/cameraState'
 import { unitWindowPose } from '../../lib/tower'
 import { useStore } from '../../store/useStore'
 
@@ -13,6 +14,8 @@ const MAX_YAW = 1.3 // rad de giro para cada lado, a partir da direção da vist
 const MIN_PITCH = -0.5
 const MAX_PITCH = 0.6
 const DRAG_SPEED = 0.004
+const AERIAL_TARGET = new Vector3(0, 7, 0)
+const AERIAL_DISTANCE = 42
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
 const orient = (yaw: number, pitch: number) => new Quaternion().setFromEuler(new Euler(pitch, yaw, 0, 'YXZ'))
@@ -57,6 +60,7 @@ export function WindowViewRig() {
   const inWindow = useRef(false)
   const look = useRef({ baseYaw: 0, yaw: 0, pitch: 0 })
   const dragging = useRef<number | null>(null)
+  const lastPointer = useRef({ x: 0, y: 0 })
 
   const wantWindow = viewMode === 'windowView' && !!selectedId
 
@@ -70,7 +74,8 @@ export function WindowViewRig() {
       look.current = { baseYaw: pose.yaw, yaw: pose.yaw, pitch: 0 }
       if (!inWindow.current) {
         // entrando: guarda a pose da órbita e assume a câmera
-        saved.current = {
+        // se ainda estiver voltando de uma varanda anterior, mantém a pose original guardada
+        saved.current ??= {
           pos: camera.position.clone(),
           quat: camera.quaternion.clone(),
           target: controls.target.clone(),
@@ -78,6 +83,7 @@ export function WindowViewRig() {
           near: camera.near,
         }
         controls.enabled = false
+        cameraState.windowView = true
         inWindow.current = true
       }
       flight.current = {
@@ -92,10 +98,18 @@ export function WindowViewRig() {
         toNear: WINDOW_NEAR,
         restore: false,
       }
+      dragging.current = null
       invalidate()
     } else if (inWindow.current && saved.current) {
       // saindo: volta à pose guardada e devolve o controle à órbita
       const s = saved.current
+      if (!selectedId) {
+        // a sessão foi zerada: em vez da pose da unidade antiga, volta à vista aérea
+        const dir = s.pos.clone().sub(s.target).normalize()
+        s.pos = AERIAL_TARGET.clone().addScaledVector(dir, AERIAL_DISTANCE)
+        s.target = AERIAL_TARGET.clone()
+        s.quat = new Quaternion().setFromRotationMatrix(new Matrix4().lookAt(s.pos, s.target, new Vector3(0, 1, 0)))
+      }
       flight.current = {
         t: 0,
         fromPos: camera.position.clone(),
@@ -117,20 +131,32 @@ export function WindowViewRig() {
   useEffect(() => {
     const el = gl.domElement
     const down = (e: PointerEvent) => {
-      if (!inWindow.current || flight.current) return
+      if (!inWindow.current || flight.current || dragging.current !== null) return
       dragging.current = e.pointerId
-      el.setPointerCapture(e.pointerId)
+      lastPointer.current = { x: e.clientX, y: e.clientY }
+      try {
+        el.setPointerCapture(e.pointerId)
+      } catch {
+        dragging.current = null
+      }
     }
     const move = (e: PointerEvent) => {
-      if (dragging.current !== e.pointerId || !inWindow.current) return
+      if (dragging.current !== e.pointerId || !inWindow.current || flight.current) return
+      // delta calculado à mão: movementX/Y não é confiável em toque (Safari/iOS)
+      const dx = e.clientX - lastPointer.current.x
+      const dy = e.clientY - lastPointer.current.y
+      lastPointer.current = { x: e.clientX, y: e.clientY }
       const l = look.current
-      l.yaw = MathUtils.clamp(l.yaw + e.movementX * DRAG_SPEED, l.baseYaw - MAX_YAW, l.baseYaw + MAX_YAW)
-      l.pitch = MathUtils.clamp(l.pitch + e.movementY * DRAG_SPEED, MIN_PITCH, MAX_PITCH)
+      l.yaw = MathUtils.clamp(l.yaw + dx * DRAG_SPEED, l.baseYaw - MAX_YAW, l.baseYaw + MAX_YAW)
+      l.pitch = MathUtils.clamp(l.pitch + dy * DRAG_SPEED, MIN_PITCH, MAX_PITCH)
       camera.quaternion.copy(orient(l.yaw, l.pitch))
       invalidate()
     }
     const up = (e: PointerEvent) => {
-      if (dragging.current === e.pointerId) dragging.current = null
+      if (dragging.current === e.pointerId) {
+        dragging.current = null
+        if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
+      }
     }
     el.addEventListener('pointerdown', down)
     el.addEventListener('pointermove', move)
@@ -162,11 +188,21 @@ export function WindowViewRig() {
         controls.enabled = true
         controls.update()
         saved.current = null
+        cameraState.windowView = false
       }
     } else {
       invalidate()
     }
   })
+
+  // se o componente sair de cena dentro da varanda, devolve a órbita
+  useEffect(
+    () => () => {
+      cameraState.windowView = false
+      if (inWindow.current && controls) controls.enabled = true
+    },
+    [controls],
+  )
 
   return null
 }
