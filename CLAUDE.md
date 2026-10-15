@@ -157,3 +157,17 @@ interface Unit {
 - **Assets 3D:** enquanto não houver modelo real, usar geometria procedural (lajes extrudadas com varandas curvas) e trocar por GLB depois, mantendo a mesma interface de `Unit`.
 - **Acessibilidade:** contraste adequado, `aria-label` nos botões de ícone, foco visível, respeitar `prefers-reduced-motion`.
 - **Entregas incrementais:** 1) cena + câmera + horário; 2) unidades e status; 3) painel + planta; 4) Window View; 5) filtros, comparar, mapa, galeria, destaques.
+
+## ✅ Revisão ao Concluir Cada Etapa
+
+Ao terminar **cada etapa** da lista de entregas incrementais, antes de começar a próxima, rode os dois agentes (em `.claude/agents/`):
+
+1. **`bug-hunter`:** busca bugs de lógica, estado, 3D, performance, touch e acessibilidade.
+2. **`security-auditor`:** busca falhas de segurança (XSS, segredos, dependências, formulários, quiosque).
+
+Regras:
+
+- Corrija todo achado **Crítico** ou **Alto** antes de seguir. Médio e Baixo viram pendências registradas.
+- Só avance se os dois agentes disserem **APROVADO** ou **APROVADO COM RESSALVAS**.
+- A skill `strix-pentest` (em `.claude/skills/`) só pode ser usada contra alvos que o dono do projeto autorizou, como este próprio projeto.
+- Fluxo de git: commits pequenos e push direto na `main`.
