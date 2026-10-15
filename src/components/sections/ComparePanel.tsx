@@ -46,7 +46,7 @@ export function ComparePanel() {
         priceShownIds.includes(u.id) ? (
           <span className="tabular-nums">{formatPrice(u.price)}</span>
         ) : (
-          <button type="button" className="rounded-lg bg-brand px-3 py-2 text-sm text-white" onClick={() => togglePrice(u.id)}>
+          <button type="button" className="min-h-12 rounded-lg bg-brand px-4 text-sm text-white" onClick={() => togglePrice(u.id)}>
             Mostrar preço
           </button>
         ) },
@@ -55,7 +55,7 @@ export function ComparePanel() {
   return (
     <SectionShell title="Comparar" subtitle={`${units.length} de 4 unidades`}>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] border-separate border-spacing-y-1 text-left text-white">
+        <table className="w-full min-w-[620px] border-separate border-spacing-y-1 text-left text-white">
           <thead>
             <tr>
               <th className="w-32" />
@@ -67,7 +67,7 @@ export function ComparePanel() {
                       type="button"
                       aria-label={`Remover ${u.id} da comparação`}
                       onClick={() => toggleCompare(u.id)}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
+                      className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white"
                     >
                       <X size={18} />
                     </button>
@@ -79,7 +79,7 @@ export function ComparePanel() {
           <tbody>
             {rows.map((r) => (
               <tr key={r.label} className="bg-white/5">
-                <th scope="row" className="rounded-l-xl px-3 py-3 text-xs font-normal uppercase tracking-widest text-white/60">
+                <th scope="row" className="sticky left-0 rounded-l-xl bg-[#1b2438] px-3 py-3 text-xs font-normal uppercase tracking-widest text-white/60">
                   {r.label}
                 </th>
                 {units.map((u, i) => (

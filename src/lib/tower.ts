@@ -1,6 +1,11 @@
 import type { Unit } from '../data/units'
 import { MAIN_TOWER_FLOORS, UNITS_PER_FLOOR } from '../data/units'
 
+/** altura do térreo (lobby em vidro com pilotis) sob o primeiro andar */
+export const BASE_HEIGHT = 0.9
+/** largura de um vão (um apartamento) na fachada */
+export const BAY = 4.4 / UNITS_PER_FLOOR
+export const BALCONY_DEPTH = 0.5
 export const FLOOR_HEIGHT = 0.62
 export const SLAB_THICKNESS = 0.12
 export const CORE_WIDTH = 4.4
@@ -24,14 +29,20 @@ export interface Level {
 }
 
 /** Posição, giro e escala de cada laje (a mesma regra desenha as lajes e as unidades). */
-export function towerLevels(floors: number, seed: number): Level[] {
+export function towerLevels(floors: number, _seed: number): Level[] {
+  // torre reta (sem giro nem afunilamento); o térreo de vidro eleva o primeiro andar
   return Array.from({ length: floors }, (_, i) => ({
-    y: i * FLOOR_HEIGHT,
-    rot: Math.sin(i * 0.55 + seed) * 0.16,
-    dx: Math.sin(i * 0.9 + seed * 2) * 0.22,
-    dz: Math.cos(i * 0.7 + seed) * 0.18,
-    scale: 1 - Math.max(0, i - floors * 0.7) * 0.012,
+    y: BASE_HEIGHT + i * FLOOR_HEIGHT,
+    rot: 0,
+    dx: 0,
+    dz: 0,
+    scale: 1,
   }))
+}
+
+/** As varandas formam um tijolo: andares ímpares deslocam meio vão. */
+export function balconyShift(floor: number) {
+  return floor % 2 === 0 ? BAY / 2 : 0
 }
 
 /** Centro do apartamento na laje, no espaço local do andar. */
@@ -79,13 +90,13 @@ export function unitWindowPose(unit: Unit, view: WindowViewId, tower: TowerConfi
   const level = towerLevels(tower.floors, tower.seed)[unit.floor - 1]
   const [dx, dz] = ORIENTATION_DIR[unit.orientation] ?? [0, -1]
   // fica logo além da fachada, ainda sob a laje de cima (que serve de teto da varanda)
-  const lx = dx !== 0 ? dx * (CORE_WIDTH / 2 + 0.3) : unitLocalX(unit.slot)
+  const lx = dx !== 0 ? dx * (CORE_WIDTH / 2 + 0.3) : unitLocalX(unit.slot) + balconyShift(unit.floor)
   const lz = dz !== 0 ? dz * (CORE_DEPTH / 2 + 0.2) : 0
   const sx = lx * level.scale
   const sz = lz * level.scale
   const cos = Math.cos(level.rot)
   const sin = Math.sin(level.rot)
-  const y = tower.position[1] + level.y + SLAB_THICKNESS + (FLOOR_HEIGHT - SLAB_THICKNESS) * 0.55
+  const y = tower.position[1] + level.y + SLAB_THICKNESS + (FLOOR_HEIGHT - SLAB_THICKNESS) * 0.72
   const baseYaw = Math.atan2(-dx, -dz) + (SEA_BIAS[unit.orientation] ?? 0) + level.rot
   return {
     position: [

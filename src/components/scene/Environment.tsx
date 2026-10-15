@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import { Stars } from '@react-three/drei'
-import { MathUtils } from 'three'
+import { Color, MathUtils } from 'three'
 import type { SkyState } from '../../lib/sky'
 
 /** Luz, céu, névoa, terreno e mar controlados pelo horário do dia. */
@@ -13,6 +13,9 @@ export function Environment({ sky }: { sky: SkyState }) {
     invalidate()
   }, [sky, invalidate])
 
+  // à noite o ambiente clareia para o azul-lua, senão o concreto claro fica preto
+  const ambient = useMemo(() => sky.skyColor.clone().lerp(new Color('#9fb4d8'), sky.night * 0.65), [sky])
+
   const [sx, sy, sz] = sky.sunDir
   // intensidade cai suavemente a zero conforme o sol desce do horizonte
   const sunFade = MathUtils.smoothstep(sy, -0.12, 0.08)
@@ -21,7 +24,7 @@ export function Environment({ sky }: { sky: SkyState }) {
     <>
       <color attach="background" args={[sky.skyColor]} />
       <fog attach="fog" args={[sky.fogColor, 40, 160]} />
-      <ambientLight intensity={sky.ambientIntensity} color={sky.skyColor} />
+      <ambientLight intensity={sky.ambientIntensity} color={ambient} />
       <directionalLight
         position={[sx * 50, Math.max(sy, 0.02) * 50, sz * 50]}
         color={sky.sunColor}

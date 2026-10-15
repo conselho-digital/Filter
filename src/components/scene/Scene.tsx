@@ -28,7 +28,7 @@ export function Scene() {
     >
       <Environment sky={sky} />
       <City night={sky.night} />
-      <Tower {...MAIN_TOWER} night={sky.night} units={UNITS} />
+      <Tower {...MAIN_TOWER} night={sky.night} units={UNITS} podium />
       <Tower position={[-9, 0, -4]} floors={17} seed={3} night={sky.night} />
       <Tower position={[9, 0, -5]} floors={19} seed={5} night={sky.night} />
       <CameraRig />

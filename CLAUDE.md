@@ -204,3 +204,24 @@ Regras:
 - Dica "Arraste para olhar ao redor" some no primeiro `pointermove`; esconder só no arrasto real. Textos de 14 px e botões estreitos na barra (totem e 360 px).
 - Resíduo de inércia da órbita ao reabilitar os controles; `timeOfDay` fora do reset por inatividade.
 - CSP e cabeçalhos de segurança em produção (ver pendências de backend).
+
+## 🏛️ Prédio de Referência (arquitetura implementada)
+
+A torre segue o render de referência enviado pelo dono do projeto: concreto claro, varandas em caixa com jardineiras florescidas, topo acobreado, térreo de vidro com pilotis e anexo baixo com teto verde.
+
+- **Fachada:** núcleo retangular de cantos arredondados; uma varanda em caixa por apartamento nas duas faces longas, e uma em cada empena lateral. Os andares ímpares deslocam as varandas meio vão (padrão de tijolo, `balconyShift` em `src/lib/tower.ts`).
+- **Peças repetidas** (varandas, parapeitos, janelas, plantas, flores) são `InstancedMesh`, gerados de forma determinística em `buildParts` (`src/components/scene/Tower.tsx`).
+- **Vista da varanda** usa a face da orientação da unidade (Mar = fundos); as plantas coladas na câmera somem para não tapar o panorama.
+- **Camada de status:** "disponível" é sutil para a fachada clara aparecer; "reservado" e "vendido" são fortes.
+- **Sol:** ao meio-dia o sol ilumina a face da frente (azimute 28°), como na referência.
+
+**Pendências da etapa 5 (revisão):**
+- Lightbox da galeria: foco no botão fechar, armadilha de foco, `inert` no fundo e `overscroll-contain`; restaurar foco ao fechar.
+- `LocationPanel`: trocar `role="img"` por `role="group"` (há botões dentro); `img` da galeria sem `onError`.
+- Desempenho dos filtros: calcular um `Set` de ids que passam (uma vez), compartilhar materiais por estado e usar `useDeferredValue` na lista.
+- `stepUnit` anda em ordem crescente enquanto a lista mostra andar decrescente; avisar quando nenhuma outra unidade passa no filtro.
+- O slider de preço máximo deixa descobrir preços por bisseção (contradiz "revelar sob demanda"): decidir entre faixas nomeadas ou aceitar.
+- Rótulos de 12 px no menu inferior (pequeno para totem); layout do menu sobre o painel da unidade abaixo de ~890 px.
+- Galeria: trocar os renders provisórios pelos renders reais do empreendimento (remover metadados EXIF antes de publicar).
+- Walk 3D e botão de captura de tela (ainda não implementados).
+- Prédio: trocar a geometria procedural por GLB real quando existir (manter a interface de `Unit`); crédito e uso da imagem de referência a confirmar com o dono.

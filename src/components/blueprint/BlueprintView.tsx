@@ -64,7 +64,7 @@ export function BlueprintView() {
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeBlueprint()
+      if (e.key === 'Escape' && useStore.getState().section === null) closeBlueprint()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

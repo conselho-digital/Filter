@@ -29,10 +29,11 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
         const selected = u.id === selectedId
         const matches = matchesFilters(u, filters)
         const hovered = matches && u.id === hoveredId
-        const color = matches ? STATUS_COLOR[u.status] : '#6b7280'
+        const color = matches || selected ? STATUS_COLOR[u.status] : '#6b7280'
         return (
           <mesh
             key={u.id}
+            raycast={matches ? undefined : () => undefined}
             position={[unitLocalX(u.slot), SLAB_THICKNESS + FLOOR_HEIGHT / 2 - SLAB_THICKNESS / 2, 0]}
             onClick={(e: ThreeEvent<MouseEvent>) => {
               if (!matches) return // apagada pelo filtro: deixa o toque passar
@@ -51,9 +52,9 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
             <meshStandardMaterial
               color={color}
               emissive={color}
-              emissiveIntensity={selected ? 1.1 : hovered ? 0.7 : matches ? 0.25 : 0}
+              emissiveIntensity={selected ? 1.1 : hovered ? 0.7 : matches ? (u.status === 'available' ? 0.12 : 0.3) : 0}
               transparent
-              opacity={selected ? 0.95 : hovered ? 0.85 : matches ? 0.55 : 0.12}
+              opacity={selected ? 0.95 : hovered ? 0.85 : matches ? (u.status === 'available' ? 0.2 : 0.55) : 0.08}
               depthWrite={false}
             />
             {(hovered || selected) && (

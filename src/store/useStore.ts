@@ -105,7 +105,7 @@ export const useStore = create<AppState>((set, get) => ({
         : [...s.priceShownIds, id],
     })),
   requestPrint: () =>
-    set((s) => (s.selectedUnitId ? { viewMode: 'blueprint', printRequested: true } : {})),
+    set((s) => (s.selectedUnitId ? { viewMode: 'blueprint', printRequested: true, section: null } : {})),
   clearPrintRequest: () => set({ printRequested: false }),
   resetSession: () =>
     set({
@@ -137,10 +137,10 @@ export const useStore = create<AppState>((set, get) => ({
         : { section: null },
     ),
   openWindowView: () =>
-    set((s) => (s.selectedUnitId ? { viewMode: 'windowView', windowViewPreset: 'view1', hoveredUnitId: null } : {})),
+    set((s) => (s.selectedUnitId ? { viewMode: 'windowView', windowViewPreset: 'view1', hoveredUnitId: null, section: null } : {})),
   closeWindowView: () => set((s) => (s.viewMode === 'windowView' ? { viewMode: 'unit' } : {})),
   setWindowViewPreset: (windowViewPreset) => set((s) => (s.viewMode === 'windowView' ? { windowViewPreset } : {})),
-  openBlueprint: () => set((s) => (s.selectedUnitId ? { viewMode: 'blueprint' } : {})),
+  openBlueprint: () => set((s) => (s.selectedUnitId ? { viewMode: 'blueprint', section: null } : {})),
   closeBlueprint: () => set((s) => (s.viewMode === 'blueprint' ? { viewMode: 'unit' } : {})),
   toggleCompare: (id) => {
     if (!UNITS_BY_ID.has(id)) return
