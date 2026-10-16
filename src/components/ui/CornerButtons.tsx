@@ -8,7 +8,8 @@ const btn =
 
 const TIPS: [string, string][] = [
   ['Arraste', 'gira a maquete em volta da torre'],
-  ['Pinça ou roda', 'aproxima e afasta'],
+  ['Pinça (ou Ctrl + roda no computador)', 'aproxima e afasta'],
+  ['Dois dedos para cima ou para baixo (ou rolagem do trackpad)', 'sobe e desce pelos andares'],
   ['Toque num apartamento', 'abre os dados, a planta e a vista da varanda'],
   ['Marque Disponível, Reservado ou Vendido', 'mostra as cores de cada situação'],
   ['Barra de horário', 'muda da manhã à noite, inclusive na vista da varanda'],
