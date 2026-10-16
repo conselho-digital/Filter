@@ -54,9 +54,10 @@ export function CameraRig() {
     const unit = selectedId ? UNITS_BY_ID.get(selectedId) : undefined
     let toTarget: Vector3
     if (unit && isPlan) {
-      // centro do pavimento em corte
+      // planta aberta: centro da câmera no apartamento escolhido, na altura do piso do andar
       const y = towerLevels(MAIN_TOWER.floors, MAIN_TOWER.seed)[unit.floor - 1].y
-      toTarget = new Vector3(MAIN_TOWER.position[0], MAIN_TOWER.position[1] + y, MAIN_TOWER.position[2])
+      const [ux, , uz] = unitWorldPosition(unit)
+      toTarget = new Vector3(ux, MAIN_TOWER.position[1] + y, uz)
     } else {
       // ao fechar a unidade, volta para o eixo da torre mantendo a altura que estava sendo vista
       // o centro da câmera fica sempre no eixo do prédio (na altura da unidade): girar orbita a torre

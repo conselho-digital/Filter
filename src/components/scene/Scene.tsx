@@ -14,6 +14,7 @@ import { WindowViewRig } from './WindowViewRig'
 import { UNITS, UNITS_BY_ID } from '../../data/units'
 import { FloorSwipe } from './FloorSwipe'
 import { PanClamp } from './PanClamp'
+import { ViewOffset } from './ViewOffset'
 import { BASE_HEIGHT, FLOOR_HEIGHT, MAIN_TOWER } from '../../lib/tower'
 import { CaptureBridge, Weather } from './Weather'
 
@@ -93,6 +94,7 @@ export function Scene() {
       <Tower {...MAIN_TOWER} night={sky.night} units={UNITS} podium planFloor={planFloor} />
       <FloorSwipe />
       <PanClamp />
+      <ViewOffset />
       {viewMode === 'aerial' && <TowerTag />}
       <CameraRig />
       <WindowViewRig />
