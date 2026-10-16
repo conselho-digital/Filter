@@ -3,6 +3,7 @@ import { useLoader } from '@react-three/fiber'
 import {
   BoxGeometry,
   CanvasTexture,
+  ClampToEdgeWrapping,
   Color,
   type InstancedMesh,
   MeshStandardMaterial,
@@ -34,8 +35,6 @@ export const ALPHA = (27 * Math.PI) / 180
 const COS = Math.cos(ALPHA)
 const SIN = Math.sin(ALPHA)
 const { width: PW, height: PH } = PHOTO
-/** abaixo desta linha (px) a borda esquerda da foto é mar aberto; acima dela é praia e cidade */
-const SEA_FROM_V = 560
 
 /** Pixel da foto -> mundo (x, z): o mar (esquerda da foto) vai para -z. */
 export function photoToWorld(u: number, v: number): [number, number] {
@@ -94,20 +93,11 @@ interface Placed {
 function tilesFor(u: number, v: number, angle: number): Placed[] {
   const out: Placed[] = []
   const add = (uu: number, vv: number, a: number) => {
-    if (uu < 0 && vv > SEA_FROM_V - 20) return // seria sobre o mar
     out.push({ u: uu, v: vv, angle: a })
   }
   add(u, v, angle)
-  // espelho na borda direita (u = PW)
+  // espelho na borda direita (u = PW); acima e abaixo a foto já é estendida ao longo da avenida
   add(2 * PW - u, v, 180 - angle)
-  add(2 * PW - u, -v, 180 + angle)
-  add(2 * PW - u, 2 * PH - v, 180 + angle)
-  // espelho no topo e na base
-  add(u, -v, -angle)
-  add(u, 2 * PH - v, -angle)
-  // espelho na borda esquerda (u = 0): só a faixa de cidade/praia
-  add(-u, v, 180 - angle)
-  add(-u, -v, 180 + angle)
   return out
 }
 /** Todos os prédios do bairro numa malha instanciada: parede com janelas (UV por metro) e telhado na cor da foto. */
@@ -284,7 +274,8 @@ const SEA_URL = SEA_TILE.src.replace(/^\//, import.meta.env.BASE_URL)
 function PhotoGround({ night }: { night: number }) {
   const [photo, seaMap] = useLoader(TextureLoader, [PHOTO_URL, SEA_URL])
   useLayoutEffect(() => {
-    photo.wrapS = photo.wrapT = MirroredRepeatWrapping
+    photo.wrapS = MirroredRepeatWrapping // borda inland: espelha
+    photo.wrapT = ClampToEdgeWrapping // ao longo da avenida a foto já foi estendida
     photo.colorSpace = SRGBColorSpace
     photo.anisotropy = 8
     photo.needsUpdate = true
@@ -320,7 +311,6 @@ function PhotoGround({ night }: { night: number }) {
 
   const tint = useMemo(() => new Color('#ffffff').lerp(new Color('#4f5d7c'), night * 0.75), [night])
   const [cx, cz] = photoToWorld(PW / 2, PH / 2)
-  const seaZ = (SEA_FROM_V - PH / 2) * S
 
   return (
     <group position={[cx, 0, cz]} rotation={[0, -Math.PI / 2 - ALPHA, 0]}>
@@ -330,7 +320,7 @@ function PhotoGround({ night }: { night: number }) {
       <mesh geometry={outerGeo} position={[0, -0.05, 0]} receiveShadow>
         <meshStandardMaterial map={photo} color={tint} roughness={1} />
       </mesh>
-      <mesh geometry={seaGeo} position={[-pw / 2 - 1250, -0.025, seaZ + 2000]}>
+      <mesh geometry={seaGeo} position={[-pw / 2 - 1250, -0.025, 0]}>
         <meshStandardMaterial map={seaMap} color={tint} roughness={1} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
       </mesh>
     </group>
