@@ -331,7 +331,9 @@ export function buildApartment3D(unit: Unit, size?: { width: number; depth: numb
   {
     const cz = sala.y + sala.h / 2
     const lx = sala.x
-    prims.push(box(lx + 2.5, cz, 3.0, 2.2, 0.02, C.rug, 0.02, { noShadow: true }))
+    // tapete menor, em tom de linho com borda, para não parecer uma placa branca no piso
+    prims.push(box(lx + 2.6, cz, 2.1, 1.6, 0.012, '#b9a68c', 0.02, { noShadow: true }))
+    prims.push(box(lx + 2.6, cz, 1.9, 1.4, 0.014, '#cdbda6', 0.02, { noShadow: true }))
     prims.push(box(lx + 0.3, cz, 0.45, 2.2, 0.5, C.woodDark))
     prims.push(box(lx + 0.12, cz, 0.06, 1.35, 0.75, '#15171a', 0.85))
     // sofá em L voltado para a TV
@@ -339,7 +341,9 @@ export function buildApartment3D(unit: Unit, size?: { width: number; depth: numb
     prims.push(box(lx + 4.55, cz - 0.15, 0.2, 2.5, 0.85, C.sofa, 0.05))
     prims.push(box(lx + 3.55, cz + 1.0, 1.6, 0.9, 0.42, C.sofaDark, 0.05))
     prims.push(box(lx + 4.05, cz - 0.9, 0.5, 0.7, 0.14, C.sofaDark, 0.47))
-    prims.push(box(lx + 2.5, cz, 1.0, 0.9, 0.36, C.oak, 0.04))
+    // mesa de centro redonda, baixa, com tampo de madeira e base escura
+    prims.push(cyl(lx + 2.6, cz, 0.85, 0.04, C.oak, 0.34))
+    prims.push(cyl(lx + 2.6, cz, 0.3, 0.34, C.dark, 0))
     prims.push(...plant(lx + 0.45, sala.y + 0.45, 1.1))
     // jantar à direita da sala, com aparador na parede do fundo
     const dx = sala.x + sala.w - 2.2
