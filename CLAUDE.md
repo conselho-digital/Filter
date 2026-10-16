@@ -260,12 +260,13 @@ O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de reco
 
 - **Uma só torre** (`MAIN_TOWER`); as outras duas e `City.tsx` foram removidas.
 - **Dimensões:** `FLOOR_HEIGHT=0.62`, núcleo 7,4 × 5,0; cada bloco de varanda ocupa o andar inteiro; células alternam em xadrez (há células e andares sem varanda).
-- **Terreno** (`Terrain.tsx`, `src/data/terrain.ts`, `public/terrain/aerial.jpg`): foto aérea do dono girada 90° (oeste/mar em -z); `photoToWorld(u,v)=[-(v-400)*S,(u-375)*S]`, `S≈0,155` unidade/px. Chão com a foto (repetição espelhada), 35 prédios 3D extrudados (fachada em canvas, janelas acesas à noite), 499 árvores instanciadas, guindaste, praia e mar além da borda.
-- **Pendências:** resolução da foto é limitada; fossos circulares da obra só existem na textura; torre não alinhada à grade das fundações; confirmar direitos de uso da foto (manter repositório privado).
+- **Bairro** (`Terrain.tsx`, `src/data/terrain.ts`, `public/terrain/bairro.jpg` e `mar.jpg`): foto da maquete do bairro enviada pelo dono; o foguete marca a torre (pixel 330,727 = `TOWER_PIXEL`) e o azul grande é o mar. Mapeamento `photoToWorld(u,v)` com giro `ALPHA=27°` (avenida beira-mar paralela ao eixo x, mar em -z) e `S = 0,6 m/px × 0,62/3` unidades/px. O chão é a foto num plano girado, com a foto espelhada ao redor (plano externo) e o mar aberto à esquerda da borda (trecho `mar.jpg` repetido espelhado).
+- **Prédios e árvores** foram detectados por cor (OpenCV: telhados laranja, bege e brancos → retângulos orientados, com divisão por watershed) e ficam em `BUILDINGS` (273 pegadas: u, v, largura, profundidade, ângulo, andares por área, cor do telhado) e `TREES` (214). Uma única `InstancedMesh` com shader: parede com janelas por UV em metros, telhado na cor da foto, janelas acesas à noite (`uNight`). As cópias espelhadas da foto também recebem prédios (`tilesFor`).
+- **Reprodução:** o script de detecção ficou no scratchpad da sessão (não versionado); refazer com a mesma lógica se a foto mudar (retirar o foguete com inpaint e preencher as margens de madeira/branco espelhando o mar).
+- **Pendências:** alturas dos prédios são estimadas pela área; foto em perspectiva (tratada como vista de cima); casas de telhado cinza-bege podem faltar; texturas de prédios iguais; confirmar direitos de uso da foto (manter repositório privado).
 - **Localização exata do prédio (Google Maps do dono):** 41.201353, -8.708498 (Leça da Palmeira). Usar como centro do mapa em `Location`.
 
 **Pendências da revisão do terreno/torre única (restantes):**
-- Telhado dos prédios sem `repeat` (textura estica nos prédios grandes); árvores caem dentro de prédios traçados.
 - Foto do terreno não é liberada (`useLoader` guarda em cache); sem LOD nas árvores.
 - Voo reto até a varanda ainda pode atravessar o núcleo (ver etapa 4).
 - Resolvido: dispose de texturas/materiais, z-fighting (polygonOffset), ErrorBoundary + Suspense da foto com `BASE_URL`, sombra 2048/4096 por tela, chão estendido, estrelas, `distanceFactor` do rótulo, constantes de câmera em `lib/cameraConsts.ts`.

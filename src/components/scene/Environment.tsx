@@ -8,7 +8,7 @@ import type { SkyState } from '../../lib/sky'
 const SHADOW_SIZE =
   typeof window !== 'undefined' && Math.max(window.screen.width, window.screen.height) * (window.devicePixelRatio || 1) >= 2400 ? 4096 : 2048
 
-/** Luz, céu, névoa, terreno e mar controlados pelo horário do dia. */
+/** Luz, céu e névoa controlados pelo horário do dia. */
 export function Environment({ sky }: { sky: SkyState }) {
   const invalidate = useThree((s) => s.invalidate)
 
@@ -47,16 +47,6 @@ export function Environment({ sky }: { sky: SkyState }) {
       />
       {sky.night > 0.5 && <Stars radius={260} depth={40} count={2500} factor={4} fade />}
 
-      {/* faixa de areia entre o terreno da foto e o mar (a oeste, para -z) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -97]}>
-        <planeGeometry args={[700, 8]} />
-        <meshStandardMaterial color="#d9c9a0" roughness={1} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
-      </mesh>
-      {/* mar */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, -300]}>
-        <planeGeometry args={[1600, 400]} />
-        <meshStandardMaterial color={sky.seaColor} roughness={0.15} metalness={0.4} polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
-      </mesh>
     </>
   )
 }

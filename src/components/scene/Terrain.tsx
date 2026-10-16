@@ -1,6 +1,7 @@
 import { Component, memo, Suspense, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useLoader } from '@react-three/fiber'
 import {
+  BoxGeometry,
   CanvasTexture,
   Color,
   type InstancedMesh,
@@ -11,33 +12,41 @@ import {
   RepeatWrapping,
   SRGBColorSpace,
   TextureLoader,
+  type WebGLProgramParametersWithUniforms,
 } from 'three'
-import { BUILDINGS, PHOTO, TREES, type BuildingRect } from '../../data/terrain'
+import { BUILDINGS, PHOTO, SEA_TILE, TOWER_PIXEL, TREES } from '../../data/terrain'
 import { createRng } from '../../lib/random'
 import { FLOOR_HEIGHT } from '../../lib/tower'
 
 /**
- * Terreno a partir da foto aérea do local: a foto cobre o chão, os prédios do entorno são
- * extrudados sobre as pegadas traçadas na foto e as árvores vêm da cor das copas.
- * A foto é girada 90° (o oeste, onde fica o mar, vai para -z) e a torre fica sobre o canteiro de obras.
+ * Bairro a partir da foto da maquete do local: a foto cobre o chão, os prédios são extrudados sobre as
+ * pegadas detectadas na foto (telhado com a cor da foto) e as árvores vêm da cor das copas.
+ * A foto é girada para a avenida beira-mar ficar paralela ao eixo x (o mar vai para -z) e a torre fica no
+ * ponto marcado pelo dono (foguete). Fora da foto, a imagem se repete espelhada (prédios inclusive).
  */
 
-/** metros por pixel da foto (estimado pela largura das ruas) e unidades por metro (andar de 3 m = 0,62 un.) */
-const M_PER_PX = 0.75
+/** metros por pixel da foto (estimado pelo tamanho das casas e ruas) e unidades por metro (andar de 3 m = 0,62 un.) */
+const M_PER_PX = 0.6
 const UNIT_PER_M = FLOOR_HEIGHT / 3
 export const S = M_PER_PX * UNIT_PER_M
-/** pixel da foto onde fica o centro da torre (canteiro de obras) */
-const U0 = 375
-const V0 = 400
+/** giro (rad) que deixa a avenida beira-mar paralela ao eixo x do mundo */
+export const ALPHA = (27 * Math.PI) / 180
+const COS = Math.cos(ALPHA)
+const SIN = Math.sin(ALPHA)
+const { width: PW, height: PH } = PHOTO
+/** abaixo desta linha (px) a borda esquerda da foto é mar aberto; acima dela é praia e cidade */
+const SEA_FROM_V = 560
 
-/** Pixel da foto -> mundo (x, z): norte da foto vira +x, leste vira +z, oeste (mar) vira -z. */
+/** Pixel da foto -> mundo (x, z): o mar (esquerda da foto) vai para -z. */
 export function photoToWorld(u: number, v: number): [number, number] {
-  return [-(v - V0) * S, (u - U0) * S]
+  const du = u - TOWER_PIXEL.u
+  const dv = v - TOWER_PIXEL.v
+  return [-(SIN * du + COS * dv) * S, (COS * du - SIN * dv) * S]
 }
 
 const BAY = 0.66 // largura de um vão de janela (≈ 3,2 m)
 
-/** Textura de fachada: parede clara com uma janela e uma laje por andar; e a máscara das janelas acesas. */
+/** Textura de fachada: parede clara com uma janela por vão e andar; e a máscara das janelas acesas. */
 function makeFacadeTextures() {
   const size = 64
   const wall = document.createElement('canvas')
@@ -62,117 +71,139 @@ function makeFacadeTextures() {
   h.fillStyle = '#ffcf8a'
   h.fillRect(16, 12, 32, 30)
 
-  const mk = (c: HTMLCanvasElement, srgb: boolean) => {
+  const mk = (c: HTMLCanvasElement) => {
     const t = new CanvasTexture(c)
     t.wrapS = t.wrapT = RepeatWrapping
-    if (srgb) t.colorSpace = SRGBColorSpace
+    t.colorSpace = SRGBColorSpace
     t.anisotropy = 4
     return t
   }
-  return { wall: mk(wall, true), glow: mk(glow, true) }
+  return { wall: mk(wall), glow: mk(glow) }
 }
-
-function roofTexture(base: string, speck: string) {
-  const c = document.createElement('canvas')
-  c.width = c.height = 64
-  const g = c.getContext('2d')!
-  g.fillStyle = base
-  g.fillRect(0, 0, 64, 64)
-  g.fillStyle = speck
-  for (let i = 0; i < 40; i++) g.fillRect((i * 37) % 64, (i * 53) % 64, 4, 3)
-  const t = new CanvasTexture(c)
-  t.colorSpace = SRGBColorSpace
-  return t
-}
-
-/** Prédio do entorno: caixa extrudada com fachada de janelas e telhado. */
-const Building = memo(function Building({ b, wall, glow, roofFlat, roofTile, night }: {
-  b: BuildingRect
-  wall: CanvasTexture
-  glow: CanvasTexture
-  roofFlat: MeshStandardMaterial
-  roofTile: MeshStandardMaterial
-  night: number
-}) {
-  const mesh = useMemo(() => {
-    const width = b.w * S
-    const depth = b.d * S
-    const height = b.floors * FLOOR_HEIGHT + b.seg * 0.004
-    const a = (b.angle * Math.PI) / 180
-    // direção do eixo local x no mundo: vetor (du, dv) da foto -> (-dv, du)
-    const rotY = Math.atan2(-Math.cos(a), -Math.sin(a))
-    const [x, z] = photoToWorld(b.u, b.v)
-
-    const face = (len: number) => {
-      const t = wall.clone()
-      t.repeat.set(Math.max(1, Math.round(len / BAY)), b.floors)
-      t.needsUpdate = true
-      const e = glow.clone()
-      e.repeat.copy(t.repeat)
-      e.needsUpdate = true
-      return new MeshStandardMaterial({ map: t, roughness: 0.9, emissive: new Color('#ffffff'), emissiveMap: e, emissiveIntensity: 0 })
-    }
-    const fx = face(depth) // faces ±x têm largura = profundidade
-    const fz = face(width)
-    const roof = b.roof === 'tile' ? roofTile : roofFlat
-    return { x, z, rotY, width, depth, height, fx, fz, mats: [fx, fx, roof, roof, fz, fz] }
-  }, [b, wall, glow, roofFlat, roofTile])
-
-  useEffect(() => {
-    mesh.fx.emissiveIntensity = night * 0.9
-    mesh.fz.emissiveIntensity = night * 0.9
-  }, [mesh, night])
-
-  // libera as texturas clonadas e os materiais da fachada
-  useEffect(
-    () => () => {
-      for (const m of [mesh.fx, mesh.fz]) {
-        m.map?.dispose()
-        m.emissiveMap?.dispose()
-        m.dispose()
-      }
-    },
-    [mesh],
-  )
-
-  return (
-    <mesh position={[mesh.x, mesh.height / 2, mesh.z]} rotation={[0, mesh.rotY, 0]} castShadow receiveShadow material={mesh.mats}>
-      <boxGeometry args={[mesh.width, mesh.height, mesh.depth]} />
-    </mesh>
-  )
-})
-
-/** Guindaste de obra ao lado da torre (o canteiro está em construção na foto). */
-const Crane = memo(function Crane() {
-  const [x, z] = photoToWorld(335, 345)
-  const yellow = '#e3a21a'
-  return (
-    <group position={[x, 0, z]} rotation={[0, 0.5, 0]}>
-      <mesh position={[0, 8.5, 0]} castShadow>
-        <boxGeometry args={[0.16, 17, 0.16]} />
-        <meshStandardMaterial color={yellow} roughness={0.6} />
-      </mesh>
-      <mesh position={[3.4, 17.3, 0]} castShadow>
-        <boxGeometry args={[10.2, 0.16, 0.16]} />
-        <meshStandardMaterial color={yellow} roughness={0.6} />
-      </mesh>
-      <mesh position={[-2.2, 17.3, 0]} castShadow>
-        <boxGeometry args={[0.9, 0.5, 0.5]} />
-        <meshStandardMaterial color="#6e6a63" roughness={0.9} />
-      </mesh>
-      <mesh position={[0, 17.0, 0]} castShadow>
-        <boxGeometry args={[0.4, 0.4, 0.4]} />
-        <meshStandardMaterial color={yellow} roughness={0.6} />
-      </mesh>
-      <mesh position={[6.2, 15.4, 0]}>
-        <boxGeometry args={[0.02, 3.3, 0.02]} />
-        <meshStandardMaterial color="#333" />
-      </mesh>
-    </group>
-  )
-})
 
 const dummy = new Object3D()
+const roofColor = new Color()
+
+interface Placed {
+  u: number
+  v: number
+  angle: number
+}
+
+/** Posições (u, v, ângulo) de um item da foto em cada cópia espelhada. */
+function tilesFor(u: number, v: number, angle: number): Placed[] {
+  const out: Placed[] = []
+  const add = (uu: number, vv: number, a: number) => {
+    if (uu < 0 && vv > SEA_FROM_V - 20) return // seria sobre o mar
+    out.push({ u: uu, v: vv, angle: a })
+  }
+  add(u, v, angle)
+  // espelho na borda direita (u = PW)
+  add(2 * PW - u, v, 180 - angle)
+  add(2 * PW - u, -v, 180 + angle)
+  add(2 * PW - u, 2 * PH - v, 180 + angle)
+  // espelho no topo e na base
+  add(u, -v, -angle)
+  add(u, 2 * PH - v, -angle)
+  // espelho na borda esquerda (u = 0): só a faixa de cidade/praia
+  add(-u, v, 180 - angle)
+  add(-u, -v, 180 + angle)
+  return out
+}
+/** Todos os prédios do bairro numa malha instanciada: parede com janelas (UV por metro) e telhado na cor da foto. */
+const Houses = memo(function Houses({ night }: { night: number }) {
+  const mesh = useRef<InstancedMesh>(null)
+  const shader = useRef<WebGLProgramParametersWithUniforms | null>(null)
+  const facade = useMemo(makeFacadeTextures, [])
+  const geo = useMemo(() => new BoxGeometry(1, 1, 1), [])
+
+  const material = useMemo(() => {
+    const m = new MeshStandardMaterial({ roughness: 0.9 })
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.wallMap = { value: facade.wall }
+      sh.uniforms.glowMap = { value: facade.glow }
+      sh.uniforms.uNight = { value: (m.userData.night as number | undefined) ?? 0 }
+      shader.current = sh
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', `#include <common>\nvarying vec2 vFacUv;\nvarying float vTop;`)
+        .replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+#ifdef USE_INSTANCING
+  vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
+#else
+  vec3 sc = vec3(1.0);
+#endif
+  vTop = step(0.5, normal.y);
+  float along = abs(normal.x) > 0.5 ? position.z * sc.z : position.x * sc.x;
+  vFacUv = vec2(along / ${BAY.toFixed(3)} + 0.5, (position.y + 0.5) * sc.y / ${FLOOR_HEIGHT.toFixed(3)});`,
+        )
+      sh.fragmentShader = sh.fragmentShader
+        .replace(
+          '#include <common>',
+          `#include <common>\nuniform sampler2D wallMap;\nuniform sampler2D glowMap;\nuniform float uNight;\nvarying vec2 vFacUv;\nvarying float vTop;`,
+        )
+        .replace('#include <map_fragment>', 'diffuseColor.rgb = mix(texture2D(wallMap, vFacUv).rgb, vColor.rgb, vTop);')
+        .replace('#include <color_fragment>', '')
+        .replace(
+          '#include <emissivemap_fragment>',
+          `#include <emissivemap_fragment>
+  totalEmissiveRadiance += vec3(1.0, 0.78, 0.45) * texture2D(glowMap, vFacUv).r * uNight * 0.9 * (1.0 - vTop);`,
+        )
+    }
+    m.customProgramCacheKey = () => 'terrain-houses'
+    return m
+  }, [facade])
+
+  const items = useMemo(() => {
+    const rand = createRng(31)
+    const list: { x: number; z: number; rot: number; w: number; d: number; h: number; color: number }[] = []
+    for (const [u, v, w, d, a, floors, color] of BUILDINGS) {
+      const scale = 0.92 // as pegadas detectadas incluem um pouco de beiral
+      const h = floors * FLOOR_HEIGHT + rand() * 0.05
+      for (const t of tilesFor(u, v, a)) {
+        const [x, z] = photoToWorld(t.u, t.v)
+        const ar = (t.angle * Math.PI) / 180 + ALPHA
+        list.push({ x, z, rot: Math.atan2(-Math.cos(ar), -Math.sin(ar)), w: w * S * scale, d: d * S * scale, h, color })
+      }
+    }
+    return list
+  }, [])
+
+  useLayoutEffect(() => {
+    const m = mesh.current
+    if (!m) return
+    items.forEach((it, i) => {
+      dummy.position.set(it.x, it.h / 2, it.z)
+      dummy.rotation.set(0, it.rot, 0)
+      dummy.scale.set(it.w, it.h, it.d)
+      dummy.updateMatrix()
+      m.setMatrixAt(i, dummy.matrix)
+      // o telhado sai mais escuro que o pixel da foto (a foto já tem luz e sombra)
+      m.setColorAt(i, roofColor.setHex(it.color).multiplyScalar(0.85))
+    })
+    m.instanceMatrix.needsUpdate = true
+    if (m.instanceColor) m.instanceColor.needsUpdate = true
+    m.computeBoundingSphere()
+  }, [items])
+
+  useEffect(() => {
+    material.userData.night = night
+    if (shader.current) shader.current.uniforms.uNight.value = night
+  }, [night, material])
+
+  useEffect(
+    () => () => {
+      facade.wall.dispose()
+      facade.glow.dispose()
+      material.dispose()
+      geo.dispose()
+    },
+    [facade, material, geo],
+  )
+
+  return <instancedMesh ref={mesh} args={[geo, material, items.length]} castShadow receiveShadow frustumCulled={false} />
+})
 
 /** Árvores instanciadas (copa + tronco) nas posições detectadas na foto. */
 const Trees = memo(function Trees() {
@@ -180,10 +211,14 @@ const Trees = memo(function Trees() {
   const trunks = useRef<InstancedMesh>(null)
   const items = useMemo(() => {
     const rand = createRng(77)
-    return TREES.map(([u, v]) => {
-      const [x, z] = photoToWorld(u, v)
-      return { x, z, k: 0.8 + rand() * 0.6, tone: rand() }
-    })
+    const list: { x: number; z: number; k: number; tone: number }[] = []
+    for (const [u, v, r] of TREES) {
+      for (const t of tilesFor(u, v, 0)) {
+        const [x, z] = photoToWorld(t.u, t.v)
+        list.push({ x, z, k: Math.min(1.5, 0.7 + r * 0.09) * (0.85 + rand() * 0.3), tone: rand() })
+      }
+    }
+    return list
   }, [])
   useLayoutEffect(() => {
     const c = crowns.current
@@ -198,7 +233,7 @@ const Trees = memo(function Trees() {
       dummy.updateMatrix()
       t.setMatrixAt(i, dummy.matrix)
       dummy.position.set(it.x, 0.78 * it.k, it.z)
-      dummy.scale.set(0.55 * it.k, 0.5 * it.k, 0.55 * it.k)
+      dummy.scale.set(0.5 * it.k, 0.46 * it.k, 0.5 * it.k)
       dummy.updateMatrix()
       c.setMatrixAt(i, dummy.matrix)
       c.setColorAt(i, dark.clone().lerp(light, it.tone))
@@ -243,8 +278,66 @@ class PhotoBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 }
 
 const PHOTO_URL = PHOTO.src.replace(/^\//, import.meta.env.BASE_URL)
+const SEA_URL = SEA_TILE.src.replace(/^\//, import.meta.env.BASE_URL)
 
-/** Terreno realista: foto aérea no chão, prédios 3D do entorno, árvores e guindaste. */
+/** Chão com a foto, a imagem espelhada ao redor e o mar aberto à esquerda da foto. */
+function PhotoGround({ night }: { night: number }) {
+  const [photo, seaMap] = useLoader(TextureLoader, [PHOTO_URL, SEA_URL])
+  useLayoutEffect(() => {
+    photo.wrapS = photo.wrapT = MirroredRepeatWrapping
+    photo.colorSpace = SRGBColorSpace
+    photo.anisotropy = 8
+    photo.needsUpdate = true
+    // mar além da borda: o trecho de mar da foto, repetido espelhado na mesma escala
+    seaMap.wrapS = seaMap.wrapT = MirroredRepeatWrapping
+    seaMap.colorSpace = SRGBColorSpace
+    seaMap.anisotropy = 8
+    seaMap.repeat.set(2500 / (SEA_TILE.width * S), 4000 / (SEA_TILE.height * S))
+    seaMap.needsUpdate = true
+  }, [photo, seaMap])
+
+  const pw = PW * S
+  const ph = PH * S
+  const photoGeo = useMemo(() => new PlaneGeometry(pw, ph).rotateX(-Math.PI / 2), [pw, ph])
+  // plano grande com a foto espelhada (UV linear a partir da posição)
+  const outerGeo = useMemo(() => {
+    const g = new PlaneGeometry(3000, 3000).rotateX(-Math.PI / 2)
+    const pos = g.attributes.position
+    const uv = g.attributes.uv
+    for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / pw + 0.5, 0.5 - pos.getZ(i) / ph)
+    uv.needsUpdate = true
+    return g
+  }, [pw, ph])
+  const seaGeo = useMemo(() => new PlaneGeometry(2500, 4000).rotateX(-Math.PI / 2), [])
+  useLayoutEffect(
+    () => () => {
+      photoGeo.dispose()
+      outerGeo.dispose()
+      seaGeo.dispose()
+    },
+    [photoGeo, outerGeo, seaGeo],
+  )
+
+  const tint = useMemo(() => new Color('#ffffff').lerp(new Color('#4f5d7c'), night * 0.75), [night])
+  const [cx, cz] = photoToWorld(PW / 2, PH / 2)
+  const seaZ = (SEA_FROM_V - PH / 2) * S
+
+  return (
+    <group position={[cx, 0, cz]} rotation={[0, -Math.PI / 2 - ALPHA, 0]}>
+      <mesh geometry={photoGeo} receiveShadow>
+        <meshStandardMaterial map={photo} color={tint} roughness={1} polygonOffset polygonOffsetFactor={-4} polygonOffsetUnits={-4} />
+      </mesh>
+      <mesh geometry={outerGeo} position={[0, -0.05, 0]} receiveShadow>
+        <meshStandardMaterial map={photo} color={tint} roughness={1} />
+      </mesh>
+      <mesh geometry={seaGeo} position={[-pw / 2 - 1250, -0.025, seaZ + 2000]}>
+        <meshStandardMaterial map={seaMap} color={tint} roughness={1} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+      </mesh>
+    </group>
+  )
+}
+
+/** Terreno realista: foto do bairro no chão, prédios 3D e árvores. */
 export function Terrain({ night }: { night: number }) {
   return (
     <group>
@@ -253,72 +346,8 @@ export function Terrain({ night }: { night: number }) {
           <PhotoGround night={night} />
         </Suspense>
       </PhotoBoundary>
-      <Surroundings night={night} />
-    </group>
-  )
-}
-
-/** Chão com a foto aérea. */
-function PhotoGround({ night }: { night: number }) {
-  const photo = useLoader(TextureLoader, PHOTO_URL)
-  useLayoutEffect(() => {
-    photo.wrapS = photo.wrapT = MirroredRepeatWrapping
-    photo.colorSpace = SRGBColorSpace
-    photo.anisotropy = 8
-    photo.needsUpdate = true
-  }, [photo])
-
-  // chão: UVs calculados do mapeamento foto -> mundo (a foto vira 90° e espelha nas bordas, sem emendas)
-  const ground = useMemo(() => {
-    const g = new PlaneGeometry(1600, 700, 8, 4)
-    g.rotateX(-Math.PI / 2)
-    g.translate(0, 0, 253)
-    const pos = g.attributes.position
-    const uv = g.attributes.uv
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i)
-      const z = pos.getZ(i)
-      const u = U0 + z / S
-      const v = V0 - x / S
-      uv.setXY(i, u / PHOTO.width, 1 - v / PHOTO.height)
-    }
-    uv.needsUpdate = true
-    return g
-  }, [])
-  useLayoutEffect(() => () => ground.dispose(), [ground])
-
-  const groundTint = useMemo(() => new Color('#ffffff').lerp(new Color('#4f5d7c'), night * 0.75), [night])
-
-  return (
-    <mesh geometry={ground} receiveShadow>
-      <meshStandardMaterial map={photo} color={groundTint} roughness={1} />
-    </mesh>
-  )
-}
-
-/** Prédios do entorno, árvores e guindaste. */
-function Surroundings({ night }: { night: number }) {
-  const facade = useMemo(makeFacadeTextures, [])
-  const roofFlat = useMemo(() => new MeshStandardMaterial({ map: roofTexture('#8f8b83', '#77736b'), roughness: 0.95 }), [])
-  const roofTile = useMemo(() => new MeshStandardMaterial({ map: roofTexture('#b0623f', '#8f4c30'), roughness: 0.9 }), [])
-  useEffect(
-    () => () => {
-      facade.wall.dispose()
-      facade.glow.dispose()
-      for (const m of [roofFlat, roofTile]) {
-        m.map?.dispose()
-        m.dispose()
-      }
-    },
-    [facade, roofFlat, roofTile],
-  )
-  return (
-    <group>
-      {BUILDINGS.map((b, i) => (
-        <Building key={i} b={b} wall={facade.wall} glow={facade.glow} roofFlat={roofFlat} roofTile={roofTile} night={night} />
-      ))}
+      <Houses night={night} />
       <Trees />
-      <Crane />
     </group>
   )
 }
