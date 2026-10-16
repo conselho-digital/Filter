@@ -44,10 +44,12 @@ const GREENS = ['#3f7d3a', '#4d8f43', '#5f9c4e', '#35692f', '#6aa858']
 const FLOWERS = ['#d9468f', '#e8c63a', '#9b59b6', '#e8734a', '#f0a0c0']
 
 // bloco de varanda: laje inferior espessa, paredes grossas, topo aberto com guarda-corpo fino
-// o bloco ocupa o andar inteiro: laje de 0 a 0,12 e paredes até o topo do andar (0,62)
-const SLAB_Y = 0.06
-const WALL_Y0 = 0.12
-const WALL_H = FLOOR_HEIGHT - 0.12
+// altura total do bloco = 70% do andar (30% mais baixo que o andar inteiro)
+const BLOCK_H = FLOOR_HEIGHT * 0.7
+const SLAB_T = 0.1
+const SLAB_Y = SLAB_T / 2
+const WALL_Y0 = SLAB_T
+const WALL_H = BLOCK_H - SLAB_T
 const WALL = 0.07
 
 // pódio largo e duplo
@@ -117,7 +119,7 @@ function buildParts(floors: number, seed: number): Parts {
       cy + ly,
       cz - lx * s + lz * c,
     ]
-    p.slab.push(mat(...at(0, SLAB_Y, 0), w, 0.12, D, rot))
+    p.slab.push(mat(...at(0, SLAB_Y, 0), w, SLAB_T, D, rot))
     p.wallFront.push(mat(...at(0, WALL_Y0 + WALL_H / 2, D / 2 - WALL / 2), w, WALL_H, WALL, rot))
     p.wallSide.push(mat(...at(w / 2 - WALL / 2, WALL_Y0 + WALL_H / 2, 0), WALL, WALL_H, D, rot))
     p.wallSide.push(mat(...at(-w / 2 + WALL / 2, WALL_Y0 + WALL_H / 2, 0), WALL, WALL_H, D, rot))
