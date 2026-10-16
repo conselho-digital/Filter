@@ -127,6 +127,27 @@ export function FloorSwipe() {
     }
 
     floorStep.fn = step
+    // botão do meio (roda) segurado e arrastado: sobe/desce a câmera (rolar a roda continua dando zoom)
+    let midY: number | null = null
+    const onMidDown = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse' || e.button !== 1) return
+      e.preventDefault() // evita a rolagem automática do navegador
+      midY = e.clientY
+      el.setPointerCapture?.(e.pointerId)
+    }
+    const onMidMove = (e: PointerEvent) => {
+      if (midY === null || e.pointerType !== 'mouse') return
+      const dy = e.clientY - midY
+      midY = e.clientY
+      // arrastar para cima = câmera sobe
+      scrollPx(-dy * 1.5, WHEEL_K)
+    }
+    const onMidUp = (e: PointerEvent) => {
+      if (e.button === 1 || e.buttons === 0) midY = null
+    }
+    el.addEventListener('pointerdown', onMidDown, true)
+    el.addEventListener('pointermove', onMidMove, true)
+    el.addEventListener('pointerup', onMidUp, true)
     el.addEventListener('pointerdown', onDown, true)
     el.addEventListener('pointermove', onMove, true)
     el.addEventListener('pointerup', onUp, true)
@@ -136,6 +157,9 @@ export function FloorSwipe() {
     return () => {
       floorStep.fn = null
       endScroll()
+      el.removeEventListener('pointerdown', onMidDown, true)
+      el.removeEventListener('pointermove', onMidMove, true)
+      el.removeEventListener('pointerup', onMidUp, true)
       el.removeEventListener('pointerdown', onDown, true)
       el.removeEventListener('pointermove', onMove, true)
       el.removeEventListener('pointerup', onUp, true)

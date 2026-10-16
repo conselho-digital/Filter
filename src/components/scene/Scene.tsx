@@ -104,9 +104,9 @@ export function Scene() {
         // zoom: mais perto na planta aberta (para ver o apartamento); afastamento máximo 1/3 do antigo (150)
         minDistance={viewMode === 'floorplan' ? 3 : 10}
         // na planta o afastamento é curto para o resto do mapa não tomar a tela
-        maxDistance={viewMode === 'floorplan' ? 22 : 50}
-        // só na planta aberta o botão direito move o centro da câmera (pan) para ver melhor o pavimento
-        enablePan={viewMode === 'floorplan'}
+        maxDistance={viewMode === 'floorplan' ? 22 : 34}
+        // o botão direito move o centro da câmera (pan) no plano do chão, preso à torre
+        enablePan
         screenSpacePanning={false}
         // fora da varanda e da planta o ângulo vertical fica travado olhando para baixo (sem horizonte)
         minPolarAngle={lockPolar ? polar : 0}
@@ -114,8 +114,8 @@ export function Scene() {
         autoRotate={touring}
         autoRotateSpeed={1.4}
         onStart={() => touring && setTouring(false)}
-        // botão direito: aproxima/afasta; na planta aberta, move o centro da câmera
-        mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: -1 as MOUSE, RIGHT: viewMode === 'floorplan' ? MOUSE.PAN : MOUSE.DOLLY }}
+        // esquerdo gira; direito move o centro (preso à torre em PanClamp); o do meio é tratado em FloorSwipe
+        mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: -1 as MOUSE, RIGHT: MOUSE.PAN }}
         rotateSpeed={0.6}
         zoomSpeed={0.8}
       />

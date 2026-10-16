@@ -312,3 +312,9 @@ O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de reco
 - **Portas indicadas:** folha de madeira aberta a 90° com puxador, soleira escura no vão e **arco de giro tracejado no piso** (função `door`); porta de correr da sala para a varanda com trilho e folha aberta.
 - **Pisos:** texturas em canvas (`Prim.tex`): tábuas de madeira na área social e íntima, porcelanato com rejunte nas áreas molhadas e deck na varanda; rodapé em volta dos cômodos. A faixa do próprio pavimento da torre saiu do corte (cobria os pisos).
 - Planta 2D e Apartamento em 3D agora abrem em tela cheia; o painel da unidade some nessas telas.
+
+## 🖱️ Controles finais da câmera (computador)
+
+- **Botão esquerdo:** gira em volta da torre. **Botão direito:** move o centro da câmera no plano do chão, preso à torre (folga de 3 fora da planta; na planta, ao pavimento e à altura do andar) por `PanClamp.tsx`, então o prédio/andar nunca sai da tela. **Roda:** zoom. **Roda segurada e arrastada:** sobe/desce a câmera (na planta, troca de andar). Ctrl + roda também sobe/desce.
+- Nenhum controle muda o ângulo vertical (travado na vista aérea, da unidade e na planta), para o horizonte não aparecer.
+- **Afastamento máximo 34** (vista inicial a 32), para não mostrar além do entorno construído; na planta, 22.

@@ -9,4 +9,4 @@ export const AERIAL_TARGET = new Vector3(MAIN_TOWER.position[0], 8, MAIN_TOWER.p
 export const MOBILE_POLAR = 0.8
 /** Com a planta aberta o ângulo também fica travado, mais de cima (58° de elevação), sem horizonte. */
 export const PLAN_POLAR = Math.PI / 2 - (58 * Math.PI) / 180
-export const AERIAL_DISTANCE = 46
+export const AERIAL_DISTANCE = 32
