@@ -13,6 +13,7 @@ import { CameraRig } from './CameraRig'
 import { WindowViewRig } from './WindowViewRig'
 import { UNITS, UNITS_BY_ID } from '../../data/units'
 import { FloorSwipe } from './FloorSwipe'
+import { PanClamp } from './PanClamp'
 import { BASE_HEIGHT, FLOOR_HEIGHT, MAIN_TOWER } from '../../lib/tower'
 import { CaptureBridge, Weather } from './Weather'
 
@@ -91,6 +92,7 @@ export function Scene() {
       <Terrain night={sky.night} />
       <Tower {...MAIN_TOWER} night={sky.night} units={UNITS} podium planFloor={planFloor} />
       <FloorSwipe />
+      <PanClamp />
       {viewMode === 'aerial' && <TowerTag />}
       <CameraRig />
       <WindowViewRig />
@@ -101,7 +103,8 @@ export function Scene() {
         target={[AERIAL_TARGET.x, AERIAL_TARGET.y, AERIAL_TARGET.z]}
         // zoom: mais perto na planta aberta (para ver o apartamento); afastamento máximo 1/3 do antigo (150)
         minDistance={viewMode === 'floorplan' ? 3 : 10}
-        maxDistance={50}
+        // na planta o afastamento é curto para o resto do mapa não tomar a tela
+        maxDistance={viewMode === 'floorplan' ? 22 : 50}
         // só na planta aberta o botão direito move o centro da câmera (pan) para ver melhor o pavimento
         enablePan={viewMode === 'floorplan'}
         screenSpacePanning={false}
