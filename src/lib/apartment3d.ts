@@ -179,8 +179,9 @@ function wall(
 
 const find = (plan: FloorPlan, name: string): Room | undefined => plan.rooms.find((r) => r.name === name)
 
-export function buildApartment3D(unit: Unit): Apartment3D {
-  const plan = buildFloorPlan(unit)
+export function buildApartment3D(unit: Unit, size?: { width: number; depth: number }): Apartment3D {
+  // `size` encaixa o apartamento num retângulo dado (ex.: seu trecho no pavimento da torre)
+  const plan = buildFloorPlan(unit, size)
   const W = plan.width
   const D = plan.depth
   const prims: Prim[] = []

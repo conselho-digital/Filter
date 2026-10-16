@@ -558,16 +558,18 @@ export function Tower({ position = [0, 0, 0], rotation = 0, floors = 22, seed = 
       const idx = m.map((x, i) => (x.elements[13] <= cutY + lim ? i : -1)).filter((i) => i >= 0)
       return { m: idx.map((i) => m[i]), c: idx.map((i) => c[i]) }
     }
-    const pl = keepC(parts.plants, parts.plantColors, 0.7)
-    const fl = keepC(parts.flowers, parts.flowerColors, 0.7)
-    const ca = keepC(parts.cascade, parts.cascadeColors, 0.7)
+    // no andar cortado as varandas ficam só com o piso: paredes, guarda-corpo e plantas saem,
+    // e as lajes do andar de cima (que flutuariam) também
+    const pl = keepC(parts.plants, parts.plantColors, -0.01)
+    const fl = keepC(parts.flowers, parts.flowerColors, -0.01)
+    const ca = keepC(parts.cascade, parts.cascadeColors, -0.01)
     return {
       ...parts,
-      slab: below(parts.slab, 0.7),
-      wallFront: below(parts.wallFront, 0.7),
-      wallSide: below(parts.wallSide, 0.7),
-      railing: below(parts.railing, 0.7),
-      soil: below(parts.soil, 0.7),
+      slab: below(parts.slab, 0.1),
+      wallFront: below(parts.wallFront, -0.01),
+      wallSide: below(parts.wallSide, -0.01),
+      railing: below(parts.railing, -0.01),
+      soil: below(parts.soil, -0.01),
       // janelas e portas do andar cortado ficariam soltas no ar
       windowsLit: below(parts.windowsLit, 0.05),
       windowsDark: below(parts.windowsDark, 0.05),

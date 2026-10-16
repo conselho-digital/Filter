@@ -32,7 +32,7 @@ function usePlanks(base: string, line: string) {
   }, [base, line])
 }
 
-function PrimMesh({ p }: { p: Prim }) {
+export function PrimMesh({ p }: { p: Prim }) {
   const color = useMemo(() => new Color(p.color), [p.color])
   const transparent = p.opacity !== undefined
   return (
