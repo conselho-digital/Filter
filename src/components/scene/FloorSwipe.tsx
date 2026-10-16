@@ -8,15 +8,13 @@ import { useStore } from '../../store/useStore'
 /** unidades de cena por pixel de rolagem (toque e trackpad/roda) */
 const TOUCH_K = 0.015
 const WHEEL_K = 0.01
-/** movimento mínimo (px) para decidir entre rolar e pinçar com dois dedos */
-const DECIDE_PX = 10
 /** pixels acumulados para trocar de andar na planta em corte */
 const PLAN_STEP_PX = 50
 
 /**
- * Rolagem vertical como numa página: dois dedos arrastados juntos para cima/baixo no celular, ou dois dedos
- * no trackpad (roda do mouse), sobem e descem a câmera pelos andares (o conteúdo acompanha os dedos).
- * Pinçar (dedos se afastando/aproximando, ou Ctrl + roda / pinça no trackpad) continua dando zoom.
+ * Rolagem vertical como numa página: três dedos arrastados para cima/baixo no celular, ou dois dedos no
+ * trackpad (roda do mouse), sobem e descem a câmera pelos andares (o conteúdo acompanha os dedos).
+ * Pinça com dois dedos (ou Ctrl + roda / pinça no trackpad) continua dando zoom.
  * Na planta em corte, a rolagem troca de andar. Page Up / Page Down e os botões ▲▼ (`floorStep`) sobem um andar.
  */
 export function FloorSwipe() {
@@ -71,61 +69,43 @@ export function FloorSwipe() {
       moveBy(px * k)
     }
 
-    // --- dois dedos no toque: decide entre rolar (dedos juntos na vertical) e pinçar (distância muda)
-    const touches = new Map<number, { x: number; y: number }>()
-    let mode: 'none' | 'decide' | 'scroll' | 'pinch' = 'none'
-    let startAvg = 0
-    let startDist = 0
+    // --- três dedos no toque: arrastar para cima/baixo rola os andares (dois dedos continuam sendo pinça)
+    const touches = new Map<number, number>()
+    let scrolling = false
     let lastAvg = 0
-    const measure = () => {
-      const [a, b] = [...touches.values()]
-      return { avg: (a.y + b.y) / 2, dist: Math.hypot(a.x - b.x, a.y - b.y) }
+    const avgY = () => {
+      let y = 0
+      touches.forEach((v) => (y += v))
+      return y / touches.size
     }
     const endScroll = () => {
-      if (mode === 'scroll' && controls) controls.enabled = true
-      mode = 'none'
+      if (scrolling && controls) controls.enabled = true
+      scrolling = false
     }
     const onDown = (e: PointerEvent) => {
       if (e.pointerType !== 'touch') return
-      touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (touches.size === 2) {
-        const m = measure()
-        mode = 'decide'
-        startAvg = lastAvg = m.avg
-        startDist = m.dist
-      } else if (touches.size > 2) endScroll()
+      touches.set(e.pointerId, e.clientY)
+      if (touches.size === 3) {
+        // a órbita e a pinça param enquanto há três dedos na tela
+        scrolling = true
+        lastAvg = avgY()
+        if (controls) controls.enabled = false
+      } else if (touches.size > 3) endScroll()
     }
     const onMove = (e: PointerEvent) => {
       if (e.pointerType !== 'touch' || !touches.has(e.pointerId)) return
-      touches.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (touches.size !== 2 || mode === 'none' || mode === 'pinch') return
-      const { avg, dist } = measure()
-      if (mode === 'decide') {
-        const dAvg = Math.abs(avg - startAvg)
-        const dDist = Math.abs(dist - startDist)
-        if (dAvg >= DECIDE_PX && dAvg > dDist * 1.2) {
-          // rolagem: a órbita/pinça param até os dedos saírem
-          mode = 'scroll'
-          if (controls) controls.enabled = false
-          lastAvg = avg
-        } else if (dDist >= DECIDE_PX) {
-          mode = 'pinch'
-          return
-        } else {
-          // ainda indefinido: segura o evento para não dar zoom antes da decisão
-          e.stopPropagation()
-          return
-        }
-      }
+      touches.set(e.pointerId, e.clientY)
+      if (!scrolling || touches.size !== 3) return
       e.stopPropagation()
       e.preventDefault()
+      const avg = avgY()
       scrollPx(avg - lastAvg, TOUCH_K)
       lastAvg = avg
     }
     const onUp = (e: PointerEvent) => {
       if (e.pointerType !== 'touch') return
       touches.delete(e.pointerId)
-      if (touches.size < 2) endScroll()
+      if (touches.size < 3) endScroll()
     }
 
     // --- trackpad (dois dedos) e roda do mouse: rola; Ctrl + roda ou pinça do trackpad: zoom (OrbitControls)
