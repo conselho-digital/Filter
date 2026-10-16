@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { UNITS } from '../../data/units'
 import { BOUNDS, isDefaultFilters, matchesFilters, MAX_QUERY_LENGTH } from '../../lib/filters'
-import { formatArea, formatPrice, STATUS_COLOR, STATUS_LABEL, typology } from '../../lib/status'
+import { formatArea, formatAreaShort, formatPrice, STATUS_COLOR, STATUS_LABEL, typology } from '../../lib/status'
 import { useStore } from '../../store/useStore'
 import { SectionShell } from './SectionShell'
 
@@ -47,6 +47,9 @@ function Range({
 }
 
 /** Gaveta de apartamentos: filtros ao vivo e lista; o que não passa no filtro some da maquete. */
+/** Só as tipologias que existem no inventário. */
+const ROOM_OPTIONS = [...new Set(UNITS.map((u) => u.bedrooms))].sort((a, b) => a - b)
+
 export function ApartmentsPanel() {
   const filters = useStore((s) => s.filters)
   useStore((s) => s.areaUnit) // refaz os textos ao trocar m²/ft²
@@ -69,7 +72,7 @@ export function ApartmentsPanel() {
         <fieldset>
           <legend className="mb-2 text-xs uppercase tracking-widest text-white/60">Quartos</legend>
           <div className="flex gap-2">
-            {[1, 2, 3].map((n) => (
+            {ROOM_OPTIONS.map((n) => (
               <button key={n} type="button" aria-pressed={filters.rooms.includes(n)} className={chip(filters.rooms.includes(n))} onClick={() => toggleRoom(n)}>
                 {n}
               </button>
@@ -84,7 +87,7 @@ export function ApartmentsPanel() {
           max={BOUNDS.area[1]}
           step={1}
           onChange={(v) => setFilters({ areaRange: [Math.min(v, filters.areaRange[1]), filters.areaRange[1]] })}
-          format={(v) => `${v} m²`}
+          format={(v) => formatAreaShort(v)}
         />
         <Range
           label="Área máxima"
@@ -93,7 +96,7 @@ export function ApartmentsPanel() {
           max={BOUNDS.area[1]}
           step={1}
           onChange={(v) => setFilters({ areaRange: [filters.areaRange[0], Math.max(v, filters.areaRange[0])] })}
-          format={(v) => `${v} m²`}
+          format={(v) => formatAreaShort(v)}
         />
         <Range
           label="Andar a partir de"

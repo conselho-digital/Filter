@@ -25,4 +25,6 @@ let areaUnit: 'm2' | 'ft2' = 'm2'
 export const setAreaUnitFormat = (u: 'm2' | 'ft2') => {
   areaUnit = u
 }
+/** Área sem casas decimais, para sliders e rótulos curtos. */
+export const formatAreaShort = (v: number) => (areaUnit === 'ft2' ? `${ft2.format(v * 10.7639)} ft²` : `${Math.round(v)} m²`)
 export const formatArea = (v: number) => (areaUnit === 'ft2' ? `${ft2.format(v * 10.7639)} ft²` : `${m2.format(v)} m²`)

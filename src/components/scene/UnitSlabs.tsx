@@ -70,7 +70,7 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
             />
             {shown && !hovered && !selected && (viewMode === 'unit' || viewMode === 'tower') && (
               <Html center position={[0, 0, DEPTH / 2 + 0.05]} distanceFactor={15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-                <div className="rounded bg-white/85 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-ink-950">{u.id.slice(1)}</div>
+                <div className="rounded bg-white/85 px-1.5 py-0.5 text-xs font-semibold leading-none text-ink-950">{u.id.slice(1)}</div>
               </Html>
             )}
             {(hovered || selected) && (

@@ -52,7 +52,7 @@ function TowerTag() {
   }, [])
   useEffect(() => () => tex.dispose(), [tex])
   return (
-    <sprite position={[0, BASE_HEIGHT + MAIN_TOWER.floors * FLOOR_HEIGHT + 3.2, 0]} scale={[8, 3, 1]}>
+    <sprite position={[MAIN_TOWER.position[0], BASE_HEIGHT + MAIN_TOWER.floors * FLOOR_HEIGHT + 3.2, MAIN_TOWER.position[2]]} scale={[8, 3, 1]}>
       <spriteMaterial map={tex} transparent toneMapped={false} fog={false} />
     </sprite>
   )

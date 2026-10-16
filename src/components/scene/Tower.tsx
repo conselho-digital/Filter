@@ -490,7 +490,7 @@ function Podium({ night }: { night: number }) {
 }
 
 /** Torre residencial de concreto claro, com tabuleiro de blocos em balanço, penthouse recuada e pódio largo. */
-export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, units, podium }: TowerProps) {
+export function Tower({ position = [0, 0, 0], rotation = 0, floors = 22, seed = 1, night, units, podium }: TowerProps) {
   // vidros refletem um ambiente claro de dia e quase nada à noite
   const env = useRoomEnv()
   const refl = 0.12 + 0.9 * (1 - night)
@@ -505,10 +505,17 @@ export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, unit
   }, [units, viewMode, selectedId])
   const parts = useMemo(() => {
     if (!eye) return built
+    // olho no espaço local da torre (desfaz posição e giro)
+    const ex = eye[0] - position[0]
+    const ez = eye[2] - position[2]
+    const c = Math.cos(rotation)
+    const sn = Math.sin(rotation)
+    const lx = ex * c - ez * sn
+    const lz = ex * sn + ez * c
     const near = (mx: Matrix4, r: number) => {
-      const dx = mx.elements[12] + position[0] - eye[0]
+      const dx = mx.elements[12] - lx
       const dy = mx.elements[13] + position[1] - eye[1]
-      const dz = mx.elements[14] + position[2] - eye[2]
+      const dz = mx.elements[14] - lz
       return dx * dx + dy * dy + dz * dz <= r * r
     }
     const dropNear = (m: Matrix4[], r: number) => m.filter((x) => !near(x, r))
@@ -532,7 +539,7 @@ export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, unit
       cascade: ca.m,
       cascadeColors: ca.c,
     }
-  }, [built, eye, position])
+  }, [built, eye, position, rotation])
 
   const levels = useMemo(() => towerLevels(floors, seed), [floors, seed])
   const shaftHeight = floors * FLOOR_HEIGHT
@@ -563,7 +570,7 @@ export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, unit
   const top = BASE_HEIGHT + shaftHeight
 
   return (
-    <group position={position}>
+    <group position={position} rotation={[0, rotation, 0]}>
       {podium ? (
         <Podium night={night} />
       ) : (

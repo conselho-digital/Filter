@@ -174,7 +174,7 @@ export const useStore = create<AppState>((set, get) => ({
     set((s) =>
       // seções cobrem a maquete: fecham unidade/planta/varanda para o estado ficar coerente
       section
-        ? { section, ...(s.viewMode === 'windowView' ? {} : { viewMode: s.selectedUnitId ? 'unit' : s.viewMode }) }
+        ? { section, touring: false, ...(s.viewMode === 'windowView' ? {} : { viewMode: s.selectedUnitId ? 'unit' : s.viewMode }) }
         : { section: null },
     ),
   openWindowView: () =>

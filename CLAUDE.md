@@ -274,9 +274,10 @@ O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de reco
 
 ## 🧱 Fachada pelas fotos de referência e 3 apartamentos por andar
 
-- **Inventário:** 3 apartamentos por andar, lado a lado na fachada longa (`UNITS_PER_FLOOR = 3`): Oeste (T2), Mar (T3), Leste (T2); 22 andares, 66 unidades. A grade de 9 colunas dá 3 colunas por apartamento (`unitSpan`, `unitBalcony`), então cada apartamento tem sempre ao menos um bloco de varanda.
+- **Posição da torre:** girada 90° (`MAIN_TOWER.rotation = -π/2`) e centrada no lote verde (pixel 342,712 da foto): o lado maior segue a rua transversal, a maior dimensão do lote; a empena do apartamento 1 aponta para o mar. A torre só aceita rotação via `TowerConfig` (poses de câmera e Window View já a consideram).
+- **Inventário:** 3 apartamentos por andar em fila, do lado do mar ao lado da cidade (`UNITS_PER_FLOOR = 3`): Mar (T3, empena para o mar), Norte (T2, fachada para a costa), Leste (T2, empena para a cidade); 22 andares, 66 unidades. A grade de 9 colunas dá 3 colunas por apartamento (`unitSpan`, `unitBalcony`), então cada apartamento tem sempre ao menos um bloco de varanda.
 - **Fachada** (fotos do dono, dia e pôr do sol): estuque areia quente; blocos de varanda maciços com **jardineira no topo do parapeito** (arbustos, flores e folhagem que cai pela frente) e guarda-corpo fino recuado; **janelas pequenas e fundas** com moldura bronze escura e montante central; porta de vidro no fundo de cada varanda; vidros refletem um ambiente gerado no código (`lib/roomEnv.ts`, sem HDR externo). Coroa: caixa de vidro com caixilhos e travessa de bronze, **pilares de concreto**, fascia escura de ripas, guarda-corpo, casa de máquinas e antena. Pódio: **pilotis quadrados de concreto**, marquise de madeira na entrada, praça de pedra com juntas.
-- **Skill `3d-website-architect`** (deveshpunjabi) instalada em `.claude/skills/`; usada para: instanciar e compartilhar geometrias, ambiente de reflexo, carregamento sob demanda do 3D (`React.lazy` + `Suspense` + ErrorBoundary de WebGL em `App.tsx`).
+- **Skill `3d-website-architect`** (deveshpunjabi, github.com/deveshpunjabi/3d-website-skill; o CLAUDE.md prevalece: stack Vite, sem instalar pacotes ou trocar de stack por causa dela) instalada em `.claude/skills/`; usada para: instanciar e compartilhar geometrias, ambiente de reflexo, carregamento sob demanda do 3D (`React.lazy` + `Suspense` + ErrorBoundary de WebGL em `App.tsx`).
 
 ## 🎥 Recursos vistos no vídeo do totem (segundo vídeo do dono)
 
@@ -285,3 +286,7 @@ O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de reco
 - **Canto inferior direito (só na vista aérea):** **Walk 3D** (tour automático com `autoRotate`, para no primeiro toque), **captura de tela** (PNG só da cena, `lib/capture.ts`) e **ajuda** (diálogo com os gestos).
 - **Etiqueta da torre** ("Torre B · N disponíveis") em sprite sobre a coroa; **números dentro das lajes** quando um status está marcado e a câmera está perto.
 - **Ainda não feito do vídeo:** cartão flutuante com a planta ligado à laje por uma linha; várias torres com letras A/B/C (o dono pediu só uma); caminhada em primeira pessoa de verdade.
+
+**Pendências da revisão dos recursos do vídeo (restantes):**
+- Rótulos de número nas lajes atravessam o prédio visto por trás (usar `occlude`); `roundRect` sem fallback em navegadores antigos; captura com `toBlob`, aviso e checagem de contexto perdido; PMREM sem dispose; nuvens cobrem a torre no zoom máximo e o céu fica azul na chuva.
+- Diálogo de ajuda e configurações: `inert`, armadilha de foco, fechar ao tocar fora e devolver foco à engrenagem; `quality` não zera no reset de sessão (decidir regra).

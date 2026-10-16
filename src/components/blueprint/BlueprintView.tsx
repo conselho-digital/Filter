@@ -216,9 +216,9 @@ export function BlueprintView() {
             {floorUnits.map((i) => (
               <rect
                 key={i}
-                x={i * 30 + 1}
+                x={(i * 150) / UNITS_PER_FLOOR + 1}
                 y={2}
-                width={28}
+                width={150 / UNITS_PER_FLOOR - 2}
                 height={40}
                 rx={3}
                 fill={i === unit.slot ? '#2f8cff' : '#dfe3ea'}

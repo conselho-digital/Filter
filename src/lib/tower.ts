@@ -12,12 +12,19 @@ export const CORE_DEPTH = 5.0
 
 export interface TowerConfig {
   position: [number, number, number]
+  /** giro da torre em Y (rad) sobre o terreno */
+  rotation: number
   floors: number
   seed: number
 }
 
 /** Torre principal, a única com unidades à venda nesta etapa. */
-export const MAIN_TOWER: TowerConfig = { position: [0, 0, 0], floors: MAIN_TOWER_FLOORS, seed: 1 }
+/**
+ * A torre ocupa o lote verde junto à avenida: o lado maior (fila de 3 apartamentos) corre ao longo da rua
+ * transversal, que é a maior dimensão do lote, e a empena do apartamento 1 aponta para o mar (oeste, -z).
+ * A posição está deslocada para o centro do lote (pixel 342,712 da foto do bairro).
+ */
+export const MAIN_TOWER: TowerConfig = { position: [0.98, 0, 2.17], rotation: -Math.PI / 2, floors: MAIN_TOWER_FLOORS, seed: 1 }
 
 export interface Level {
   y: number
@@ -105,8 +112,8 @@ export function unitWorldPosition(unit: Unit, tower: TowerConfig = MAIN_TOWER): 
   const level = towerLevels(tower.floors, tower.seed)[unit.floor - 1]
   const lx = unitLocalX(unit.slot) * level.scale
   const lz = 0
-  const cos = Math.cos(level.rot)
-  const sin = Math.sin(level.rot)
+  const cos = Math.cos(level.rot + tower.rotation)
+  const sin = Math.sin(level.rot + tower.rotation)
   const x = lx * cos + lz * sin
   const z = -lx * sin + lz * cos
   return [
@@ -126,14 +133,14 @@ export interface WindowPose {
 
 /** Direção da vista principal de cada orientação, no espaço local do andar. */
 const ORIENTATION_DIR: Record<string, [number, number]> = {
-  Mar: [0, -1],
+  Mar: [-1, 0], // empena do lado do mar
+  Norte: [0, -1], // fachada longa voltada para a costa ao norte
   Sul: [0, 1],
-  Oeste: [-1, 0],
-  Leste: [1, 0],
+  Leste: [1, 0], // empena do lado da cidade
 }
 
-/** Oeste e Leste dariam numa torre vizinha: a vista principal já gira para o mar. */
-const SEA_BIAS: Record<string, number> = { Oeste: -0.9, Leste: 0.9 }
+/** O apartamento do meio olha ao longo da costa: a vista principal já gira para o mar. */
+const SEA_BIAS: Record<string, number> = { Norte: 0.9 }
 
 /** Ponto de vista na varanda (olhos da unidade) e direção do olhar, em coordenadas do mundo. */
 export function unitWindowPose(unit: Unit, view: WindowViewId, tower: TowerConfig = MAIN_TOWER): WindowPose {
@@ -144,17 +151,17 @@ export function unitWindowPose(unit: Unit, view: WindowViewId, tower: TowerConfi
   const lz = dz !== 0 ? dz * (CORE_DEPTH / 2 + 0.2) : nearestBalcony(CORE_DEPTH, unit.floor, 0)
   const sx = lx * level.scale
   const sz = lz * level.scale
-  const cos = Math.cos(level.rot)
-  const sin = Math.sin(level.rot)
+  const cos = Math.cos(level.rot + tower.rotation)
+  const sin = Math.sin(level.rot + tower.rotation)
   const y = tower.position[1] + level.y + EYE_HEIGHT
-  const baseYaw = Math.atan2(-dx, -dz) + (SEA_BIAS[unit.orientation] ?? 0) + level.rot
+  const baseYaw = Math.atan2(-dx, -dz) + (SEA_BIAS[unit.orientation] ?? 0) + level.rot + tower.rotation
   return {
     position: [
       tower.position[0] + level.dx + sx * cos + sz * sin,
       y,
       tower.position[2] + level.dz - sx * sin + sz * cos,
     ],
-    // a Vista 2 gira para o lado aberto (na empena Leste o giro positivo apontaria para o núcleo)
-    yaw: view === 'view2' ? baseYaw + (unit.orientation === 'Leste' ? -0.95 : 0.95) : baseYaw,
+    // a Vista 2 gira para o lado aberto (nas empenas e no apartamento do meio o outro sentido apontaria para o núcleo ou para o mar)
+    yaw: view === 'view2' ? baseYaw + (unit.orientation === 'Leste' || unit.orientation === 'Norte' ? -0.95 : 0.95) : baseYaw,
   }
 }
