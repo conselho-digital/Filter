@@ -12,9 +12,8 @@ const WHEEL_K = 0.01
 const PLAN_STEP_PX = 50
 
 /**
- * Rolagem vertical como numa página: três dedos arrastados para cima/baixo no celular, ou dois dedos no
- * trackpad (roda do mouse), sobem e descem a câmera pelos andares (o conteúdo acompanha os dedos).
- * Pinça com dois dedos (ou Ctrl + roda / pinça no trackpad) continua dando zoom.
+ * Subir e descer a câmera pelos andares: três dedos arrastados para cima/baixo no celular, ou Ctrl + roda do
+ * mouse no computador. A roda sozinha e a pinça de dois dedos continuam dando zoom.
  * Na planta em corte, a rolagem troca de andar. Page Up / Page Down e os botões ▲▼ (`floorStep`) sobem um andar.
  */
 export function FloorSwipe() {
@@ -108,9 +107,10 @@ export function FloorSwipe() {
       if (touches.size < 3) endScroll()
     }
 
-    // --- trackpad (dois dedos) e roda do mouse: rola; Ctrl + roda ou pinça do trackpad: zoom (OrbitControls)
+    // --- computador: Ctrl + roda (ou pinça do trackpad, que chega como Ctrl + roda) sobe e desce a câmera
+    // roda do mouse sozinha = zoom (fica com o OrbitControls); Ctrl + roda = sobe/desce a câmera
     const onWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || blocked()) return
+      if (!e.ctrlKey || blocked()) return
       e.preventDefault()
       e.stopImmediatePropagation()
       const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY

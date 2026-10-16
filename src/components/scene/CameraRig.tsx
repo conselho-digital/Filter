@@ -58,14 +58,18 @@ export function CameraRig() {
       const y = towerLevels(MAIN_TOWER.floors, MAIN_TOWER.seed)[unit.floor - 1].y
       toTarget = new Vector3(MAIN_TOWER.position[0], MAIN_TOWER.position[1] + y, MAIN_TOWER.position[2])
     } else {
-      toTarget = unit ? new Vector3(...unitWorldPosition(unit)) : AERIAL_TARGET.clone()
+      // ao fechar a unidade, volta para o eixo da torre mantendo a altura que estava sendo vista
+      toTarget = unit
+        ? new Vector3(...unitWorldPosition(unit))
+        : new Vector3(AERIAL_TARGET.x, controls.target.y, AERIAL_TARGET.z)
     }
     flight.current = {
       t: 0,
       fromTarget: controls.target.clone(),
       toTarget,
       fromDistance: camera.position.distanceTo(controls.target),
-      toDistance: unit ? (isPlan ? PLAN_DISTANCE : UNIT_DISTANCE) : AERIAL_DISTANCE,
+      // fechar o painel só afasta um pouco (não volta para a vista aérea inteira)
+      toDistance: unit ? (isPlan ? PLAN_DISTANCE : UNIT_DISTANCE) : Math.min(AERIAL_DISTANCE, Math.max(camera.position.distanceTo(controls.target) * 1.35, 24)),
       toElevation: unit && isPlan ? PLAN_ELEVATION : planChanged && unit ? UNIT_ELEVATION : undefined,
     }
     invalidate()
