@@ -12,6 +12,7 @@ import { CameraRig } from './CameraRig'
 import { WindowViewRig } from './WindowViewRig'
 import { UNITS, UNITS_BY_ID } from '../../data/units'
 import { FloorSwipe } from './FloorSwipe'
+import { DragGuard } from './DragGuard'
 import { BASE_HEIGHT, FLOOR_HEIGHT, MAIN_TOWER } from '../../lib/tower'
 import { CaptureBridge, Weather } from './Weather'
 
@@ -87,6 +88,7 @@ export function Scene() {
       <Terrain night={sky.night} />
       <Tower {...MAIN_TOWER} night={sky.night} units={UNITS} podium planFloor={planFloor} />
       <FloorSwipe />
+      <DragGuard />
       {viewMode === 'aerial' && <TowerTag />}
       <CameraRig />
       <WindowViewRig />

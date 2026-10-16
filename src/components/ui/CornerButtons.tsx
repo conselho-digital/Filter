@@ -7,7 +7,7 @@ const btn =
   'glass pointer-events-auto flex min-h-12 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white'
 
 const TIPS: [string, string][] = [
-  ['Arraste', 'gira a maquete em volta da torre'],
+  ['Arraste fora do prédio', 'gira a maquete em volta da torre'],
   ['Pinça (ou Ctrl + roda no computador)', 'aproxima e afasta'],
   ['Três dedos para cima ou para baixo (ou rolagem do trackpad)', 'sobe e desce pelos andares'],
   ['Toque num apartamento', 'abre os dados, a planta e a vista da varanda'],

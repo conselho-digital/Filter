@@ -611,7 +611,7 @@ export function Tower({ position = [0, 0, 0], rotation = 0, floors = 22, seed = 
   const top = BASE_HEIGHT + shaftHeight
 
   return (
-    <group position={position} rotation={[0, rotation, 0]}>
+    <group name="tower" position={position} rotation={[0, rotation, 0]}>
       {podium ? (
         <Podium night={night} />
       ) : (
