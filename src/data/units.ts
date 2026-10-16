@@ -20,15 +20,13 @@ export interface Unit {
 
 export const MAIN_BLOCK = 'B'
 export const MAIN_TOWER_FLOORS = 22
-export const UNITS_PER_FLOOR = 5
+export const UNITS_PER_FLOOR = 3
 
-/** Perfil fixo de cada posição no andar: quartos, área base (m²) e orientação. */
+/** Perfil fixo de cada posição no andar (3 apartamentos por andar, lado a lado): quartos, área base (m²) e orientação. */
 const PROFILES = [
-  { bedrooms: 1, area: 78.4, orientation: 'Oeste' },
-  { bedrooms: 2, area: 96.2, orientation: 'Sul' },
-  { bedrooms: 2, area: 142.55, orientation: 'Mar' },
-  { bedrooms: 3, area: 118.9, orientation: 'Mar' },
-  { bedrooms: 2, area: 88.7, orientation: 'Leste' },
+  { bedrooms: 2, area: 108.4, orientation: 'Oeste' },
+  { bedrooms: 3, area: 142.55, orientation: 'Mar' },
+  { bedrooms: 2, area: 96.2, orientation: 'Leste' },
 ] as const
 
 const pad = (n: number) => String(n).padStart(2, '0')

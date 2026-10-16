@@ -77,6 +77,21 @@ export function nearestBalcony(length: number, floor: number, at: number): numbe
   return balconyOffsets(length, floor).reduce((best, x) => (Math.abs(x - at) < Math.abs(best - at) ? x : best))
 }
 
+/** Trecho da fachada longa (x local) que pertence ao apartamento do `slot`. */
+export function unitSpan(slot: number): [number, number] {
+  const w = CORE_WIDTH / UNITS_PER_FLOOR
+  return [-CORE_WIDTH / 2 + slot * w, -CORE_WIDTH / 2 + (slot + 1) * w]
+}
+
+/** Bloco de varanda do próprio apartamento no andar (o mais próximo do centro dentro do seu trecho). */
+export function unitBalcony(floor: number, slot: number, length = CORE_WIDTH): number {
+  const [lo, hi] = unitSpan(slot)
+  const center = (lo + hi) / 2
+  const own = balconyOffsets(length, floor).filter((x) => x > lo && x < hi)
+  const pool = own.length > 0 ? own : balconyOffsets(length, floor)
+  return pool.reduce((best, x) => (Math.abs(x - center) < Math.abs(best - center) ? x : best))
+}
+
 /** Altura dos olhos na varanda: acima do parapeito e abaixo da laje do andar de cima. */
 export const EYE_HEIGHT = 0.585
 
@@ -125,7 +140,7 @@ export function unitWindowPose(unit: Unit, view: WindowViewId, tower: TowerConfi
   const level = towerLevels(tower.floors, tower.seed)[unit.floor - 1]
   const [dx, dz] = ORIENTATION_DIR[unit.orientation] ?? [0, -1]
   // fica logo além da fachada, ainda sob a laje de cima (que serve de teto da varanda)
-  const lx = dx !== 0 ? dx * (CORE_WIDTH / 2 + 0.3) : nearestBalcony(CORE_WIDTH, unit.floor, unitLocalX(unit.slot))
+  const lx = dx !== 0 ? dx * (CORE_WIDTH / 2 + 0.3) : unitBalcony(unit.floor, unit.slot)
   const lz = dz !== 0 ? dz * (CORE_DEPTH / 2 + 0.2) : nearestBalcony(CORE_DEPTH, unit.floor, 0)
   const sx = lx * level.scale
   const sz = lz * level.scale
