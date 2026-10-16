@@ -75,7 +75,7 @@ export function UnitPanel() {
 
   const unit = selectedId ? UNITS_BY_ID.get(selectedId) : undefined
   // painel recolhido: metade da altura (a maquete fica mais visível)
-  const [compact, setCompact] = useState(false)
+  const [compact, setCompact] = useState(true)
 
   useEffect(() => {
     if (!selectedId) return
@@ -106,7 +106,7 @@ export function UnitPanel() {
   return (
     <aside
       aria-label={`Detalhes do apartamento ${unit.id}`}
-      className={`glass glass-panel pointer-events-auto absolute bottom-0 right-0 z-10 flex w-[min(100vw,380px)] flex-col gap-5 overflow-y-auto overscroll-contain pb-24 rounded-l-3xl p-6 pt-2 max-md:w-full max-md:rounded-l-none max-md:rounded-t-3xl ${
+      className={`glass glass-panel pointer-events-auto absolute bottom-0 right-0 z-10 flex w-[min(100vw,380px)] flex-col gap-5 overflow-y-auto overscroll-contain pb-6 rounded-l-3xl p-6 pt-2 max-md:w-full max-md:rounded-l-none max-md:rounded-t-3xl ${
         compact ? 'h-[calc(50%-3rem)] max-md:h-auto max-md:max-h-[30%]' : 'top-24 max-md:top-auto max-md:max-h-[60%]'
       }`}
     >

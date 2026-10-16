@@ -18,14 +18,14 @@ export function BottomNav() {
   const hasUnit = useStore((s) => s.selectedUnitId !== null)
 
   // na planta e na vista da varanda o menu sai de cena
+  // com o painel do apartamento aberto, o menu inferior sai de cena
+  if (hasUnit) return null
   if (viewMode === 'windowView' || viewMode === 'blueprint' || viewMode === 'floorplan' || viewMode === 'plan3d') return null
 
   return (
     <nav
       aria-label="Seções"
-      className={`glass pointer-events-auto absolute bottom-4 z-30 flex max-w-[96vw] -translate-x-1/2 items-stretch gap-1 rounded-2xl p-1.5 ${
-        hasUnit ? 'left-1/2 md:left-[calc(50%-190px)]' : 'left-1/2'
-      }`}
+      className="glass pointer-events-auto absolute bottom-4 left-1/2 z-30 flex max-w-[96vw] -translate-x-1/2 items-stretch gap-1 rounded-2xl p-1.5"
     >
       {ITEMS.map(({ id, label, Icon }) => {
         const on = section === id

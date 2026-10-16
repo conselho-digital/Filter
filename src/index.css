@@ -33,9 +33,9 @@ body,
   background: rgb(17 24 39 / 0.7);
 }
 
-/* painel da unidade: 40% mais escuro que o vidro de 70% */
+/* painel da unidade: bem escuro, quase opaco */
 .glass-panel {
-  background: rgb(10 14 23 / 0.82);
+  background: rgb(5 8 14 / 0.9);
 }
 
 @media (prefers-reduced-motion: reduce) {
