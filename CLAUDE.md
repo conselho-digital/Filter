@@ -299,3 +299,8 @@ O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de reco
 - O número do apartamento escolhido não flutua mais na cena (já está no painel); só o realce do mouse mostra etiqueta.
 - **Celular e computador:** a câmera mira o centro da torre (`AERIAL_TARGET` na posição da torre) e o ângulo vertical fica **travado olhando para baixo** (`MOBILE_POLAR = 0,8 rad` em `minPolarAngle`/`maxPolarAngle`, na vista aérea e da unidade), para o horizonte não aparecer; girar em volta continua livre.
 - **Centro da câmera no eixo do prédio:** a vista aérea, a unidade escolhida (na altura dela) e a planta miram o eixo da torre, então arrastar (inclusive começando sobre o prédio) orbita em volta da torre. **Botão direito** aproxima/afasta; **na planta aberta** ele move o centro da câmera (pan) para ver melhor o pavimento.
+
+## 🖥️ Painel da unidade e zoom (ajustes do dono)
+
+- **Computador:** o painel da unidade ocupa a **altura toda** e tem **760 px** de largura (dados em 3 colunas, ações em 2), com **25% de transparência** (`.glass-panel` em `index.css`); a barra de horário vai para a área livre à esquerda. **Celular:** folha inferior recolhível (30%/60%), quase opaca.
+- **Zoom:** afastamento máximo **50** (1/3 do antigo 150; vista aérea inicial a 46); aproximação mínima **10**, e **3 com a planta aberta** para ver o apartamento de perto.

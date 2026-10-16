@@ -106,8 +106,9 @@ export function UnitPanel() {
   return (
     <aside
       aria-label={`Detalhes do apartamento ${unit.id}`}
-      className={`glass glass-panel pointer-events-auto absolute bottom-0 right-0 z-10 flex ${viewMode === 'floorplan' ? 'max-md:hidden' : ''} w-[min(100vw,380px)] flex-col gap-5 overflow-y-auto overscroll-contain pb-6 rounded-l-3xl p-6 pt-2 max-md:w-full max-md:rounded-l-none max-md:rounded-t-3xl ${
-        compact ? 'h-[calc(50%-3rem)] max-md:h-auto max-md:max-h-[30%]' : 'top-24 max-md:top-auto max-md:max-h-[60%]'
+      // computador: altura toda da página e 760 px de largura; celular: folha inferior recolhível
+      className={`glass glass-panel pointer-events-auto absolute bottom-0 right-0 z-10 flex ${viewMode === 'floorplan' ? 'max-md:hidden' : ''} flex-col gap-5 overflow-y-auto overscroll-contain p-6 pb-6 pt-2 md:top-0 md:w-[min(100vw,760px)] md:rounded-l-3xl md:pt-24 max-md:w-full max-md:rounded-t-3xl ${
+        compact ? 'max-md:max-h-[30%]' : 'max-md:max-h-[60%]'
       }`}
     >
       <button
@@ -115,7 +116,7 @@ export function UnitPanel() {
         aria-label={compact ? 'Aumentar painel' : 'Diminuir painel'}
         aria-expanded={!compact}
         onClick={() => setCompact((c) => !c)}
-        className="mx-auto flex h-8 w-24 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-brand"
+        className="mx-auto flex h-8 w-24 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-brand md:hidden"
       >
         <span className="h-1.5 w-12 rounded-full bg-white/45" aria-hidden />
       </button>
@@ -153,7 +154,7 @@ export function UnitPanel() {
         </button>
       </div>
 
-      <dl className="grid grid-cols-2 gap-3">
+      <dl className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {facts.map(([label, value]) => (
           <div key={label} className="rounded-xl bg-white/5 px-4 py-3">
             <dt className="text-xs uppercase tracking-widest text-white/50">{label}</dt>
@@ -171,7 +172,7 @@ export function UnitPanel() {
         {priceShown ? <EyeOff size={20} /> : <Eye size={20} />}
       </button>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 md:grid md:grid-cols-2">
         <Action icon={<AppWindow size={20} />} onClick={openWindowView}>
           Window View
         </Action>

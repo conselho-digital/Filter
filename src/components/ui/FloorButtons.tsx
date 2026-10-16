@@ -15,7 +15,7 @@ export function FloorButtons() {
     <div
       role="group"
       aria-label="Subir ou descer a câmera"
-      className={`absolute top-1/2 z-20 flex -translate-y-1/2 flex-col gap-2 right-4 max-md:right-3 max-md:top-[38%] ${hasUnit ? 'md:right-[396px]' : ''}`}
+      className={`absolute top-1/2 z-20 flex -translate-y-1/2 flex-col gap-2 right-4 max-md:right-3 max-md:top-[38%] ${hasUnit ? 'md:right-[776px]' : ''}`}
     >
       <button type="button" aria-label="Subir um andar" className={btn} onClick={() => floorStep.fn?.(1)}>
         <ChevronUp size={24} aria-hidden />

@@ -12,9 +12,15 @@ const MARKS = [
 export function TimeSlider() {
   const timeOfDay = useStore((s) => s.timeOfDay)
   const setTimeOfDay = useStore((s) => s.setTimeOfDay)
+  // com o painel da unidade aberto no computador, a barra fica na área livre à esquerda dele
+  const panelOpen = useStore((s) => s.selectedUnitId !== null && s.viewMode !== 'windowView')
 
   return (
-    <div className="glass pointer-events-auto absolute left-1/2 top-4 w-[min(92vw,720px)] -translate-x-1/2 rounded-2xl px-5 pb-4 pt-3 max-md:top-2 max-md:rounded-xl max-md:px-4 max-md:py-0.5">
+    <div
+      className={`glass pointer-events-auto absolute left-1/2 top-4 w-[min(92vw,720px)] -translate-x-1/2 rounded-2xl px-5 pb-4 pt-3 max-md:top-2 max-md:rounded-xl max-md:px-4 max-md:py-0.5 ${
+        panelOpen ? 'md:left-[calc((100%-760px)/2)] md:w-[max(280px,min(calc(100vw-800px),720px))]' : ''
+      }`}
+    >
       <div className="relative mb-2 h-12 max-md:mb-0 max-md:h-7">
         {MARKS.map(({ t, label, Icon }) => {
           const active = Math.abs(timeOfDay - t) < 0.17

@@ -33,9 +33,14 @@ body,
   background: rgb(17 24 39 / 0.7);
 }
 
-/* painel da unidade: bem escuro, quase opaco */
+/* painel da unidade: bem escuro, quase opaco no celular e 25% transparente no computador */
 .glass-panel {
   background: rgb(5 8 14 / 0.9);
+}
+@media (min-width: 768px) {
+  .glass-panel {
+    background: rgb(5 8 14 / 0.75);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

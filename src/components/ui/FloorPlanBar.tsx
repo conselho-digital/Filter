@@ -29,7 +29,7 @@ export function FloorPlanBar() {
   return (
     <nav
       aria-label="Planta no prédio"
-      className="glass glass-panel pointer-events-auto absolute bottom-4 left-1/2 z-30 flex max-w-[96vw] -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-2xl p-1.5 md:left-[calc(50%-190px)]"
+      className="glass glass-panel pointer-events-auto absolute bottom-4 left-1/2 z-30 flex max-w-[96vw] -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-2xl p-1.5 md:left-[calc(50%-380px)]"
     >
       <button type="button" className={btn} onClick={() => stepFloor(-1)} disabled={unit.floor <= 1} aria-label="Andar de baixo">
         <ChevronDown size={20} aria-hidden />

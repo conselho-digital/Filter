@@ -98,8 +98,9 @@ export function Scene() {
         enableDamping
         dampingFactor={0.08}
         target={[AERIAL_TARGET.x, AERIAL_TARGET.y, AERIAL_TARGET.z]}
-        minDistance={16}
-        maxDistance={150}
+        // zoom: mais perto na planta aberta (para ver o apartamento); afastamento máximo 1/3 do antigo (150)
+        minDistance={viewMode === 'floorplan' ? 3 : 10}
+        maxDistance={50}
         // só na planta aberta o botão direito move o centro da câmera (pan) para ver melhor o pavimento
         enablePan={viewMode === 'floorplan'}
         screenSpacePanning={false}
