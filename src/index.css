@@ -33,6 +33,11 @@ body,
   background: rgb(17 24 39 / 0.7);
 }
 
+/* painel da unidade: 40% mais escuro que o vidro de 70% */
+.glass-panel {
+  background: rgb(10 14 23 / 0.82);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;

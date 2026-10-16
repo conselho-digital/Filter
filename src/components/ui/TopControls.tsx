@@ -52,7 +52,7 @@ export function TopControls() {
   const next = weather === 'clear' ? 'Nublado' : weather === 'clouds' ? 'Chuva' : 'Céu limpo'
 
   return (
-    <div className="pointer-events-none absolute right-4 top-4 z-30 flex flex-col items-end gap-2 max-lg:right-3 max-lg:top-[92px]">
+    <div className="pointer-events-none absolute right-4 top-4 z-30 flex flex-col items-end gap-2 max-lg:right-3 max-lg:top-[92px] max-md:top-[70px]">
       <div className="flex gap-2">
         <button
           type="button"
