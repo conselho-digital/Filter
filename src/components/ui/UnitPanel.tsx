@@ -58,6 +58,7 @@ const iconBtn =
 /** Painel lateral com os dados da unidade selecionada. */
 export function UnitPanel() {
   const selectedId = useStore((s) => s.selectedUnitId)
+  useStore((s) => s.areaUnit) // refaz os textos ao trocar m²/ft²
   const priceShownIds = useStore((s) => s.priceShownIds)
   const selectUnit = useStore((s) => s.selectUnit)
   const stepUnit = useStore((s) => s.stepUnit)

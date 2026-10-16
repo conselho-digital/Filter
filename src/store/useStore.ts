@@ -1,10 +1,15 @@
 import { create } from 'zustand'
 import { UNITS, UNITS_BY_ID, type UnitStatus } from '../data/units'
+import { setAreaUnitFormat } from '../lib/status'
 import { DEFAULT_FILTERS, matchesFilters, sanitizeQuery, type Filters } from '../lib/filters'
 
 export type Section = 'apartments' | 'compare' | 'location' | 'gallery' | 'highlights'
 
 export type WindowViewPreset = 'view1' | 'view2'
+
+export type Weather = 'clear' | 'clouds' | 'rain'
+export type Quality = 'high' | 'low'
+export type AreaUnit = 'm2' | 'ft2'
 
 export type ViewMode = 'aerial' | 'tower' | 'unit' | 'blueprint' | 'plan3d' | 'windowView'
 
@@ -26,6 +31,16 @@ interface AppState {
   statusVisible: Record<UnitStatus, boolean>
   /** seção aberta pelo menu inferior (cobre a maquete) */
   section: Section | null
+  weather: Weather
+  quality: Quality
+  areaUnit: AreaUnit
+  /** tour automático: a câmera gira em volta da torre até o primeiro toque */
+  touring: boolean
+  setWeather: (w: Weather) => void
+  cycleWeather: () => void
+  setQuality: (q: Quality) => void
+  setAreaUnit: (u: AreaUnit) => void
+  setTouring: (on: boolean) => void
   setViewMode: (mode: ViewMode) => void
   setTimeOfDay: (t: number) => void
   selectUnit: (id: string | null) => void
@@ -69,6 +84,18 @@ export const useStore = create<AppState>((set, get) => ({
   filters: DEFAULT_FILTERS,
   statusVisible: NO_STATUS,
   section: null,
+  weather: 'clear',
+  quality: 'high',
+  areaUnit: 'm2',
+  touring: false,
+  setWeather: (weather) => set({ weather }),
+  cycleWeather: () => set((s) => ({ weather: s.weather === 'clear' ? 'clouds' : s.weather === 'clouds' ? 'rain' : 'clear' })),
+  setQuality: (quality) => set({ quality }),
+  setAreaUnit: (areaUnit) => {
+    setAreaUnitFormat(areaUnit)
+    set({ areaUnit })
+  },
+  setTouring: (touring) => set({ touring }),
   setViewMode: (viewMode) =>
     set((s) => {
       if (viewMode === 'aerial' || viewMode === 'tower') {
@@ -81,7 +108,7 @@ export const useStore = create<AppState>((set, get) => ({
   selectUnit: (id) => {
     if (id && !UNITS_BY_ID.has(id)) return
     if (id) {
-      set({ selectedUnitId: id, hoveredUnitId: null, viewMode: 'unit' })
+      set({ selectedUnitId: id, hoveredUnitId: null, viewMode: 'unit', touring: false })
       return
     }
     // fechar a unidade volta à maquete, mas não tira o usuário da planta ou da vista da varanda
@@ -114,7 +141,8 @@ export const useStore = create<AppState>((set, get) => ({
   requestPrint: () =>
     set((s) => (s.selectedUnitId ? { viewMode: 'blueprint', printRequested: true, section: null } : {})),
   clearPrintRequest: () => set({ printRequested: false }),
-  resetSession: () =>
+  resetSession: () => {
+    setAreaUnitFormat('m2')
     set({
       viewMode: 'aerial',
       selectedUnitId: null,
@@ -127,7 +155,11 @@ export const useStore = create<AppState>((set, get) => ({
       filters: DEFAULT_FILTERS,
       statusVisible: NO_STATUS,
       section: null,
-    }),
+      weather: 'clear',
+      areaUnit: 'm2',
+      touring: false,
+    })
+  },
   setFilters: (patch) =>
     set((s) => ({
       filters: {

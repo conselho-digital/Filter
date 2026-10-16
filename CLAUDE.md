@@ -241,7 +241,7 @@ Fonte: página do projeto em vizta.pt e brochura em PDF (dados públicos, sujeit
 - **Comodidades:** varandas e terraços, estacionamento e arrecadações, pré-instalação para carregador elétrico, sala multiusos de condomínio (cowork, festas, reuniões), espaço fitness, lobby com duplo pé-direito, hortas e terraços comuns.
 - **Plantas desenhadas:** o site e a brochura NÃO publicam plantas por tipologia, só renders de interiores mobiliados. As plantas da plataforma são procedurais e provisórias (T1 a T3).
 - **Próximo passo combinado:** o dono do projeto enviará uma versão mobiliada das plantas para modelarmos em 3D na plataforma.
-- **Decisão pendente:** alinhar as tipologias do inventário mockado às reais (hoje: 5 apartamentos por andar, T1 a T3, 22 andares, 110 unidades).
+- **Decisão pendente:** alinhar as tipologias do inventário mockado às reais (hoje: 3 apartamentos por andar, T2/T3/T2, 22 andares, 66 unidades).
 
 **Regras de interface definidas pelo dono do projeto:**
 - Cores de status das unidades (disponível, reservado, vendido) **só aparecem quando o botão de marcar correspondente está ativo**; por padrão a fachada fica limpa e as unidades continuam clicáveis.
@@ -271,3 +271,17 @@ O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de reco
 - Foto do terreno não é liberada (`useLoader` guarda em cache); sem LOD nas árvores.
 - Voo reto até a varanda ainda pode atravessar o núcleo (ver etapa 4).
 - Resolvido: dispose de texturas/materiais, z-fighting (polygonOffset), ErrorBoundary + Suspense da foto com `BASE_URL`, sombra 2048/4096 por tela, chão estendido, estrelas, `distanceFactor` do rótulo, constantes de câmera em `lib/cameraConsts.ts`.
+
+## 🧱 Fachada pelas fotos de referência e 3 apartamentos por andar
+
+- **Inventário:** 3 apartamentos por andar, lado a lado na fachada longa (`UNITS_PER_FLOOR = 3`): Oeste (T2), Mar (T3), Leste (T2); 22 andares, 66 unidades. A grade de 9 colunas dá 3 colunas por apartamento (`unitSpan`, `unitBalcony`), então cada apartamento tem sempre ao menos um bloco de varanda.
+- **Fachada** (fotos do dono, dia e pôr do sol): estuque areia quente; blocos de varanda maciços com **jardineira no topo do parapeito** (arbustos, flores e folhagem que cai pela frente) e guarda-corpo fino recuado; **janelas pequenas e fundas** com moldura bronze escura e montante central; porta de vidro no fundo de cada varanda; vidros refletem um ambiente gerado no código (`lib/roomEnv.ts`, sem HDR externo). Coroa: caixa de vidro com caixilhos e travessa de bronze, **pilares de concreto**, fascia escura de ripas, guarda-corpo, casa de máquinas e antena. Pódio: **pilotis quadrados de concreto**, marquise de madeira na entrada, praça de pedra com juntas.
+- **Skill `3d-website-architect`** (deveshpunjabi) instalada em `.claude/skills/`; usada para: instanciar e compartilhar geometrias, ambiente de reflexo, carregamento sob demanda do 3D (`React.lazy` + `Suspense` + ErrorBoundary de WebGL em `App.tsx`).
+
+## 🎥 Recursos vistos no vídeo do totem (segundo vídeo do dono)
+
+- **Clima** (botão ao lado da engrenagem): céu limpo, nublado (nuvens instanciadas, sol mais fraco) e chuva (riscos animados, névoa fechada).
+- **Engrenagem:** qualidade (DPR 1 ou até 2), unidade de área m²/ft² (`setAreaUnitFormat`) e idioma (só português por enquanto).
+- **Canto inferior direito (só na vista aérea):** **Walk 3D** (tour automático com `autoRotate`, para no primeiro toque), **captura de tela** (PNG só da cena, `lib/capture.ts`) e **ajuda** (diálogo com os gestos).
+- **Etiqueta da torre** ("Torre B · N disponíveis") em sprite sobre a coroa; **números dentro das lajes** quando um status está marcado e a câmera está perto.
+- **Ainda não feito do vídeo:** cartão flutuante com a planta ligado à laje por uma linha; várias torres com letras A/B/C (o dono pediu só uma); caminhada em primeira pessoa de verdade.

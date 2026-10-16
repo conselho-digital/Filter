@@ -157,6 +157,7 @@ function Scene({ unitId, labels }: { unitId: string; labels: boolean }) {
 /** Apartamento mobiliado em 3D (recorte isométrico), gerado a partir da planta da unidade. */
 export function Apartment3DView() {
   const viewMode = useStore((s) => s.viewMode)
+  useStore((s) => s.areaUnit) // refaz os textos ao trocar m²/ft²
   const selectedId = useStore((s) => s.selectedUnitId)
   const closePlan3d = useStore((s) => s.closePlan3d)
   const unit = selectedId ? UNITS_BY_ID.get(selectedId) : undefined

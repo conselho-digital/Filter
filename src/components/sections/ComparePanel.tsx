@@ -10,6 +10,7 @@ const btn =
 /** Matriz comparativa lado a lado das unidades escolhidas (até 4). */
 export function ComparePanel() {
   const compareIds = useStore((s) => s.compareIds)
+  useStore((s) => s.areaUnit) // refaz os textos ao trocar m²/ft²
   const priceShownIds = useStore((s) => s.priceShownIds)
   const toggleCompare = useStore((s) => s.toggleCompare)
   const togglePrice = useStore((s) => s.togglePrice)

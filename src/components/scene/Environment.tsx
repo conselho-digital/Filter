@@ -3,13 +3,19 @@ import { useThree } from '@react-three/fiber'
 import { Stars } from '@react-three/drei'
 import { Color, MathUtils } from 'three'
 import type { SkyState } from '../../lib/sky'
+import type { Weather } from '../../store/useStore'
 
 /** sombra maior só em telas grandes (totem 4K); o resto usa 2048 para poupar memória de GPU */
 const SHADOW_SIZE =
   typeof window !== 'undefined' && Math.max(window.screen.width, window.screen.height) * (window.devicePixelRatio || 1) >= 2400 ? 4096 : 2048
 
 /** Luz, céu e névoa controlados pelo horário do dia. */
-export function Environment({ sky }: { sky: SkyState }) {
+export function Environment({ sky, weather }: { sky: SkyState; weather: Weather }) {
+  // nuvens e chuva escurecem o sol e fecham a névoa
+  const sunK = weather === 'rain' ? 0.25 : weather === 'clouds' ? 0.55 : 1
+  const fogColor = useMemo(() => sky.fogColor.clone().lerp(new Color('#8a929c'), weather === 'rain' ? 0.6 : weather === 'clouds' ? 0.25 : 0), [sky, weather])
+  const fogFar = weather === 'rain' ? 300 : 520
+  const fogNear = weather === 'rain' ? 40 : 120
   const invalidate = useThree((s) => s.invalidate)
 
   // render sob demanda: redesenha quando o horário muda
@@ -30,12 +36,12 @@ export function Environment({ sky }: { sky: SkyState }) {
   return (
     <>
       <color attach="background" args={[sky.skyColor]} />
-      <fog attach="fog" args={[sky.fogColor, 120, 520]} />
+      <fog attach="fog" args={[fogColor, fogNear, fogFar]} />
       <ambientLight intensity={sky.ambientIntensity} color={ambient} />
       <directionalLight
         position={[sx * 90, Math.max(sy, 0.02) * 90, sz * 90]}
         color={sky.sunColor}
-        intensity={Math.max(0.08, sky.sunIntensity * sunFade)}
+        intensity={Math.max(0.08, sky.sunIntensity * sunFade * sunK)}
         castShadow
         shadow-mapSize={[SHADOW_SIZE, SHADOW_SIZE]}
         shadow-camera-left={-75}

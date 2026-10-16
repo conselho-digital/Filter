@@ -49,6 +49,7 @@ function Range({
 /** Gaveta de apartamentos: filtros ao vivo e lista; o que não passa no filtro some da maquete. */
 export function ApartmentsPanel() {
   const filters = useStore((s) => s.filters)
+  useStore((s) => s.areaUnit) // refaz os textos ao trocar m²/ft²
   const setFilters = useStore((s) => s.setFilters)
   const resetFilters = useStore((s) => s.resetFilters)
   const selectUnit = useStore((s) => s.selectUnit)

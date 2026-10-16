@@ -16,6 +16,7 @@ const fmt = (n: number) => n.toFixed(1).replace('.', ',')
 /** Planta baixa 2D da unidade selecionada, com pan e zoom por toque, roda e botões. */
 export function BlueprintView() {
   const viewMode = useStore((s) => s.viewMode)
+  useStore((s) => s.areaUnit) // refaz os textos ao trocar m²/ft²
   const selectedId = useStore((s) => s.selectedUnitId)
   const closeBlueprint = useStore((s) => s.closeBlueprint)
   const printRequested = useStore((s) => s.printRequested)
