@@ -64,10 +64,10 @@ export function UnitPanel() {
   const stepUnit = useStore((s) => s.stepUnit)
   const togglePrice = useStore((s) => s.togglePrice)
   const viewMode = useStore((s) => s.viewMode)
-  const openBlueprint = useStore((s) => s.openBlueprint)
   const requestPrint = useStore((s) => s.requestPrint)
   const openWindowView = useStore((s) => s.openWindowView)
   const openPlan3d = useStore((s) => s.openPlan3d)
+  const openFloorPlan = useStore((s) => s.openFloorPlan)
   const compareIds = useStore((s) => s.compareIds)
   const toggleCompare = useStore((s) => s.toggleCompare)
   const favoriteIds = useStore((s) => s.favoriteIds)
@@ -178,7 +178,7 @@ export function UnitPanel() {
         <Action icon={<Box size={20} />} onClick={openPlan3d} active={viewMode === 'plan3d'}>
           Apartamento em 3D
         </Action>
-        <Action icon={<FileText size={20} />} onClick={openBlueprint} active={viewMode === 'blueprint'}>
+        <Action icon={<FileText size={20} />} onClick={openFloorPlan} active={viewMode === 'floorplan'}>
           Planta do apartamento
         </Action>
         <Action icon={<Printer size={20} />} onClick={requestPrint}>

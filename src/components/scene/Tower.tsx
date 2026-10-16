@@ -18,6 +18,7 @@ import {
   type TowerConfig,
 } from '../../lib/tower'
 import { UnitSlabs } from './UnitSlabs'
+import { FloorPlanLayer } from './FloorPlanLayer'
 
 interface TowerProps extends Partial<TowerConfig> {
   /** 0 (dia) a 1 (noite): acende as janelas */
@@ -26,6 +27,8 @@ interface TowerProps extends Partial<TowerConfig> {
   units?: Unit[]
   /** pódio largo e duplo na base (café, lobby, praça); só na torre principal */
   podium?: boolean
+  /** andar em corte para mostrar as plantas dentro do prédio (null = prédio inteiro) */
+  planFloor?: number | null
 }
 
 // materiais e cores (concreto claro, bronze, madeira, vidro escuro)
@@ -492,7 +495,7 @@ function Podium({ night }: { night: number }) {
 }
 
 /** Torre residencial de concreto claro, com tabuleiro de blocos em balanço, penthouse recuada e pódio largo. */
-export function Tower({ position = [0, 0, 0], rotation = 0, floors = 22, seed = 1, night, units, podium }: TowerProps) {
+export function Tower({ position = [0, 0, 0], rotation = 0, floors = 22, seed = 1, night, units, podium, planFloor = null }: TowerProps) {
   // vidros refletem um ambiente claro de dia e quase nada à noite
   const env = useRoomEnv()
   const refl = 0.12 + 0.9 * (1 - night)
@@ -501,6 +504,7 @@ export function Tower({ position = [0, 0, 0], rotation = 0, floors = 22, seed = 
   // na vista da varanda, some a vegetação colada na câmera para não tapar o panorama
   const viewMode = useStore((s) => s.viewMode)
   const selectedId = useStore((s) => s.selectedUnitId)
+  const planUnitId = planFloor ? selectedId : null
   const eye = useMemo(() => {
     const unit = units && viewMode === 'windowView' && selectedId ? UNITS_BY_ID.get(selectedId) : undefined
     return unit ? unitWindowPose(unit, 'view1').position : null
@@ -544,6 +548,39 @@ export function Tower({ position = [0, 0, 0], rotation = 0, floors = 22, seed = 
   }, [built, eye, position, rotation])
 
   const levels = useMemo(() => towerLevels(floors, seed), [floors, seed])
+
+  // corte no pavimento da planta: some tudo acima da laje do andar (blocos do próprio andar ficam)
+  const cutY = planFloor ? levels[planFloor - 1]?.y ?? null : null
+  const shown = useMemo(() => {
+    if (cutY === null) return parts
+    const below = (m: Matrix4[], lim: number) => m.filter((x) => x.elements[13] <= cutY + lim)
+    const keepC = (m: Matrix4[], c: Color[], lim: number) => {
+      const idx = m.map((x, i) => (x.elements[13] <= cutY + lim ? i : -1)).filter((i) => i >= 0)
+      return { m: idx.map((i) => m[i]), c: idx.map((i) => c[i]) }
+    }
+    const pl = keepC(parts.plants, parts.plantColors, 0.7)
+    const fl = keepC(parts.flowers, parts.flowerColors, 0.7)
+    const ca = keepC(parts.cascade, parts.cascadeColors, 0.7)
+    return {
+      ...parts,
+      slab: below(parts.slab, 0.7),
+      wallFront: below(parts.wallFront, 0.7),
+      wallSide: below(parts.wallSide, 0.7),
+      railing: below(parts.railing, 0.7),
+      soil: below(parts.soil, 0.7),
+      // janelas e portas do andar cortado ficariam soltas no ar
+      windowsLit: below(parts.windowsLit, 0.05),
+      windowsDark: below(parts.windowsDark, 0.05),
+      frames: below(parts.frames, 0.05),
+      floorBands: below(parts.floorBands, 0.05),
+      plants: pl.m,
+      plantColors: pl.c,
+      flowers: fl.m,
+      flowerColors: fl.c,
+      cascade: ca.m,
+      cascadeColors: ca.c,
+    }
+  }, [parts, cutY])
   const shaftHeight = floors * FLOOR_HEIGHT
   const core = useMemo(() => {
     const g = new ExtrudeGeometry(roundedRect(CORE_WIDTH, CORE_DEPTH, 0.14), { depth: shaftHeight, bevelEnabled: false })
@@ -593,65 +630,76 @@ export function Tower({ position = [0, 0, 0], rotation = 0, floors = 22, seed = 
       )}
 
       {/* fuste em concreto claro com cantos arredondados */}
-      <mesh geometry={core} position={[0, BASE_HEIGHT, 0]} castShadow receiveShadow>
+      <mesh
+        geometry={core}
+        position={[0, BASE_HEIGHT, 0]}
+        scale={[1, cutY === null ? 1 : Math.max(0.001, (cutY + 0.02 - BASE_HEIGHT) / shaftHeight), 1]}
+        castShadow
+        receiveShadow
+      >
         <meshStandardMaterial color={CORE_WALL} roughness={0.95} />
       </mesh>
-      <Inst m={parts.floorBands} cast={false}>
+      <Inst m={shown.floorBands} cast={false}>
         {box}
         <meshStandardMaterial color={CREAM_DARK} roughness={0.95} />
       </Inst>
 
       {/* blocos de varanda em balanço (tabuleiro) */}
-      <Inst m={parts.slab}>
+      <Inst m={shown.slab}>
         {box}
         <meshStandardMaterial color={CREAM} roughness={0.95} />
       </Inst>
-      <Inst m={parts.wallFront}>
+      <Inst m={shown.wallFront}>
         {box}
         <meshStandardMaterial color={CREAM} roughness={0.95} />
       </Inst>
-      <Inst m={parts.wallSide}>
+      <Inst m={shown.wallSide}>
         {box}
         <meshStandardMaterial color={CREAM_DARK} roughness={0.95} />
       </Inst>
-      <Inst m={parts.railing} cast={false}>
+      <Inst m={shown.railing} cast={false}>
         {box}
         <meshStandardMaterial color={RAIL} roughness={0.5} metalness={0.4} />
       </Inst>
-      <Inst m={parts.soil} cast={false}>
+      <Inst m={shown.soil} cast={false}>
         {box}
         <meshStandardMaterial color={SOIL} roughness={1} />
       </Inst>
 
       {/* janelas recuadas com moldura escura; de noite parte delas acende */}
-      <Inst m={parts.frames} cast={false}>
+      <Inst m={shown.frames} cast={false}>
         {box}
         <meshStandardMaterial color="#2b2118" roughness={0.6} />
       </Inst>
-      <Inst m={parts.windowsDark} cast={false}>
+      <Inst m={shown.windowsDark} cast={false}>
         {box}
         <meshStandardMaterial color={PANE} roughness={0.15} metalness={0.3} envMap={env} envMapIntensity={refl} />
       </Inst>
-      <Inst m={parts.windowsLit} cast={false}>
+      <Inst m={shown.windowsLit} cast={false}>
         {box}
         <meshStandardMaterial color={PANE} roughness={0.15} metalness={0.3} emissive="#ffcf8a" emissiveIntensity={night * 1.5} envMap={env} envMapIntensity={refl} />
       </Inst>
 
       {/* jardineiras: arbustos, flores e folhagem caindo */}
-      <Inst m={parts.plants} colors={parts.plantColors}>
+      <Inst m={shown.plants} colors={shown.plantColors}>
         <icosahedronGeometry args={[1, 0]} />
         <meshStandardMaterial color="#ffffff" roughness={0.9} flatShading />
       </Inst>
-      <Inst m={parts.flowers} colors={parts.flowerColors} cast={false}>
+      <Inst m={shown.flowers} colors={shown.flowerColors} cast={false}>
         <icosahedronGeometry args={[1, 0]} />
         <meshStandardMaterial color="#ffffff" roughness={0.8} flatShading />
       </Inst>
-      <Inst m={parts.cascade} colors={parts.cascadeColors} cast={false}>
+      <Inst m={shown.cascade} colors={shown.cascadeColors} cast={false}>
         {box}
         <meshStandardMaterial color="#ffffff" roughness={0.9} />
       </Inst>
 
-      <Crown top={top} night={night} />
+      {cutY === null && <Crown top={top} night={night} />}
+      {cutY !== null && planFloor && unitsByFloor.has(planFloor) && (
+        <group position={[0, cutY, 0]}>
+          <FloorPlanLayer units={unitsByFloor.get(planFloor)!} selectedId={planUnitId} />
+        </group>
+      )}
 
       {/* volumes translúcidos clicáveis das unidades */}
       {levels.map((l, i) =>

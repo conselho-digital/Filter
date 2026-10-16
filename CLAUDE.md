@@ -290,3 +290,9 @@ O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de reco
 **Pendências da revisão dos recursos do vídeo (restantes):**
 - Rótulos de número nas lajes atravessam o prédio visto por trás (usar `occlude`); `roundRect` sem fallback em navegadores antigos; captura com `toBlob`, aviso e checagem de contexto perdido; PMREM sem dispose; nuvens cobrem a torre no zoom máximo e o céu fica azul na chuva.
 - Diálogo de ajuda e configurações: `inert`, armadilha de foco, fechar ao tocar fora e devolver foco à engrenagem; `quality` não zera no reset de sessão (decidir regra).
+
+## 🧭 Planta no prédio e gesto de três dedos
+
+- **"Planta do apartamento"** abre o modo `floorplan`: a torre é cortada no pavimento da unidade (some tudo acima, o fuste é encurtado e a coroa sai) e as plantas dos **3 apartamentos do andar** aparecem sobre a laje (`FloorPlanLayer.tsx`), com paredes baixas em corte, nomes dos cômodos no apartamento escolhido (contorno azul) e os números dos vizinhos (tocar num vizinho troca a seleção). A câmera voa para cima do pavimento (`CameraRig`, elevação 58°). Barra inferior: andar de baixo/cima, **Planta 2D** (a tela clara antiga, usada também para imprimir), **Em 3D** e **Voltar ao prédio** (Esc também volta).
+- As plantas são as procedurais (`buildFloorPlan` com `size` = trecho do apartamento no pavimento): o site e a brochura não publicam plantas por tipologia; trocar pelas plantas reais quando o dono enviar.
+- **Três dedos para cima/baixo** (`FloorSwipe.tsx`): sobe ou desce a câmera um andar a cada 36 px; no modo planta, troca para o andar de cima/baixo. Page Up / Page Down fazem o mesmo no teclado.

@@ -24,10 +24,11 @@ const r1 = (n: number) => Math.round(n * 10) / 10
  * Planta procedural e determinística: varanda na frente (lado do mar), sala e cozinha no meio,
  * quartos e banheiros nos fundos. As medidas derivam da área privativa da unidade.
  */
-export function buildFloorPlan(unit: Unit): FloorPlan {
+export function buildFloorPlan(unit: Unit, size?: { width: number; depth: number }): FloorPlan {
   const total = unit.area
-  const width = r1(Math.sqrt(total * 1.55))
-  const depth = r1(total / width)
+  // `size` encaixa a planta num retângulo dado (ex.: o trecho do apartamento no pavimento da torre)
+  const width = size ? r1(size.width) : r1(Math.sqrt(total * 1.55))
+  const depth = size ? r1(size.depth) : r1(total / width)
   const inner = depth - BALCONY_DEPTH
   const backDepth = r1(inner * 0.44)
   const frontDepth = r1(inner - backDepth)

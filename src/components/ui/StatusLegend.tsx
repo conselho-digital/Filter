@@ -33,7 +33,7 @@ export function StatusLegend() {
     return c
   }, [])
 
-  if (viewMode === 'windowView') return null
+  if (viewMode === 'windowView' || viewMode === 'floorplan') return null
 
   return (
     <div className={`pointer-events-none absolute bottom-24 left-4 flex flex-col items-start gap-2 ${hasUnit ? 'max-md:hidden' : ''}`}>

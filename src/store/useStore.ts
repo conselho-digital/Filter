@@ -11,7 +11,7 @@ export type Weather = 'clear' | 'clouds' | 'rain'
 export type Quality = 'high' | 'low'
 export type AreaUnit = 'm2' | 'ft2'
 
-export type ViewMode = 'aerial' | 'tower' | 'unit' | 'blueprint' | 'plan3d' | 'windowView'
+export type ViewMode = 'aerial' | 'tower' | 'unit' | 'blueprint' | 'floorplan' | 'plan3d' | 'windowView'
 
 interface AppState {
   viewMode: ViewMode
@@ -49,6 +49,11 @@ interface AppState {
   togglePrice: (id: string) => void
   openBlueprint: () => void
   openPlan3d: () => void
+  /** planta do apartamento dentro do prédio (pavimento em corte) */
+  openFloorPlan: () => void
+  closeFloorPlan: () => void
+  /** no corte, troca para o apartamento da mesma posição no andar de cima (+1) ou de baixo (-1) */
+  stepFloor: (delta: 1 | -1) => void
   closePlan3d: () => void
   openWindowView: () => void
   setFilters: (patch: Partial<Filters>) => void
@@ -113,7 +118,7 @@ export const useStore = create<AppState>((set, get) => ({
     }
     // fechar a unidade volta à maquete, mas não tira o usuário da planta ou da vista da varanda
     set((s) => {
-      const leaving = s.viewMode === 'unit' || s.viewMode === 'tower' || s.viewMode === 'blueprint' || s.viewMode === 'plan3d'
+      const leaving = s.viewMode === 'unit' || s.viewMode === 'tower' || s.viewMode === 'blueprint' || s.viewMode === 'floorplan' || s.viewMode === 'plan3d'
       return {
         selectedUnitId: leaving ? null : s.selectedUnitId,
         hoveredUnitId: null,
@@ -181,6 +186,15 @@ export const useStore = create<AppState>((set, get) => ({
     set((s) => (s.selectedUnitId ? { viewMode: 'windowView', windowViewPreset: 'view1', hoveredUnitId: null, section: null } : {})),
   closeWindowView: () => set((s) => (s.viewMode === 'windowView' ? { viewMode: 'unit' } : {})),
   setWindowViewPreset: (windowViewPreset) => set((s) => (s.viewMode === 'windowView' ? { windowViewPreset } : {})),
+  openFloorPlan: () => set((s) => (s.selectedUnitId ? { viewMode: 'floorplan', section: null, touring: false } : {})),
+  closeFloorPlan: () => set((s) => (s.viewMode === 'floorplan' ? { viewMode: 'unit' } : {})),
+  stepFloor: (delta) => {
+    const { selectedUnitId } = get()
+    const cur = selectedUnitId ? UNITS_BY_ID.get(selectedUnitId) : undefined
+    if (!cur) return
+    const next = UNITS.find((u) => u.floor === cur.floor + delta && u.slot === cur.slot)
+    if (next) set({ selectedUnitId: next.id, hoveredUnitId: null })
+  },
   openPlan3d: () => set((s) => (s.selectedUnitId ? { viewMode: 'plan3d', section: null } : {})),
   closePlan3d: () => set((s) => (s.viewMode === 'plan3d' ? { viewMode: 'unit' } : {})),
   openBlueprint: () => set((s) => (s.selectedUnitId ? { viewMode: 'blueprint', section: null } : {})),

@@ -4,6 +4,7 @@ import { useIdleReset } from './hooks/useIdleReset'
 import { Sections } from './components/sections/Sections'
 import { BottomNav } from './components/ui/BottomNav'
 import { CornerButtons } from './components/ui/CornerButtons'
+import { FloorPlanBar } from './components/ui/FloorPlanBar'
 import { TopControls } from './components/ui/TopControls'
 import { StatusLegend } from './components/ui/StatusLegend'
 import { TimeSlider } from './components/ui/TimeSlider'
@@ -82,6 +83,7 @@ export default function App() {
           </Suspense>
         </SceneBoundary>
         <WindowViewBar />
+        <FloorPlanBar />
       </div>
     </div>
   )

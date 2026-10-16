@@ -37,7 +37,7 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
   const filterActive = !isDefaultFilters(filters)
 
   // na vista da varanda só a arquitetura aparece (sem volumes coloridos nem etiquetas)
-  if (viewMode === 'windowView') return null
+  if (viewMode === 'windowView' || viewMode === 'floorplan') return null
 
   return (
     <>

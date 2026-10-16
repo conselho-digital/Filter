@@ -10,7 +10,8 @@ import { Terrain } from './Terrain'
 import { Tower } from './Tower'
 import { CameraRig } from './CameraRig'
 import { WindowViewRig } from './WindowViewRig'
-import { UNITS } from '../../data/units'
+import { UNITS, UNITS_BY_ID } from '../../data/units'
+import { FloorSwipe } from './FloorSwipe'
 import { BASE_HEIGHT, FLOOR_HEIGHT, MAIN_TOWER } from '../../lib/tower'
 import { CaptureBridge, Weather } from './Weather'
 
@@ -64,6 +65,8 @@ export function Scene() {
   const touring = useStore((s) => s.touring)
   const setTouring = useStore((s) => s.setTouring)
   const viewMode = useStore((s) => s.viewMode)
+  const selectedId = useStore((s) => s.selectedUnitId)
+  const planFloor = viewMode === 'floorplan' && selectedId ? (UNITS_BY_ID.get(selectedId)?.floor ?? null) : null
   const timeOfDay = useStore((s) => s.timeOfDay)
   const sky = useMemo(() => skyAt(timeOfDay), [timeOfDay])
   const selectUnit = useStore((s) => s.selectUnit)
@@ -82,7 +85,8 @@ export function Scene() {
       <CaptureBridge />
       <TourDriver active={touring} />
       <Terrain night={sky.night} />
-      <Tower {...MAIN_TOWER} night={sky.night} units={UNITS} podium />
+      <Tower {...MAIN_TOWER} night={sky.night} units={UNITS} podium planFloor={planFloor} />
+      <FloorSwipe />
       {viewMode === 'aerial' && <TowerTag />}
       <CameraRig />
       <WindowViewRig />
