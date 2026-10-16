@@ -44,8 +44,8 @@ const GREENS = ['#3f7d3a', '#4d8f43', '#5f9c4e', '#35692f', '#6aa858']
 const FLOWERS = ['#d9468f', '#e8c63a', '#9b59b6', '#e8734a', '#f0a0c0']
 
 // bloco de varanda: laje inferior espessa, paredes grossas, topo aberto com guarda-corpo fino
-// altura total do bloco = 70% do andar (30% mais baixo que o andar inteiro)
-const BLOCK_H = FLOOR_HEIGHT * 0.7
+// altura total do bloco = 49% do andar (duas reduções de 30%), para as portas de vidro aparecerem
+const BLOCK_H = FLOOR_HEIGHT * 0.49
 const SLAB_T = 0.1
 const SLAB_Y = SLAB_T / 2
 const WALL_Y0 = SLAB_T
