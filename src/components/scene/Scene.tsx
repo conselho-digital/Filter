@@ -3,7 +3,7 @@ import { AERIAL_TARGET, MOBILE_POLAR } from '../../lib/cameraConsts'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { ACESFilmicToneMapping, CanvasTexture, PCFShadowMap, SRGBColorSpace } from 'three'
+import { ACESFilmicToneMapping, CanvasTexture, MOUSE, PCFShadowMap, SRGBColorSpace } from 'three'
 import { useStore } from '../../store/useStore'
 import { skyAt } from '../../lib/sky'
 import { Environment } from './Environment'
@@ -109,6 +109,8 @@ export function Scene() {
         autoRotate={touring}
         autoRotateSpeed={1.4}
         onStart={() => touring && setTouring(false)}
+        // botão direito faz o que o botão do meio (roda clicada) fazia: arrastar para aproximar/afastar
+        mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: -1 as MOUSE, RIGHT: MOUSE.DOLLY }}
         rotateSpeed={0.6}
         zoomSpeed={0.8}
       />
