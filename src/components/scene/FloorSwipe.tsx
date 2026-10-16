@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { BASE_HEIGHT, FLOOR_HEIGHT, MAIN_TOWER } from '../../lib/tower'
+import { floorStep } from '../../lib/floorStep'
 import { useStore } from '../../store/useStore'
 
 /** deslocamento vertical (px) dos três dedos para subir ou descer um andar */
@@ -9,7 +10,7 @@ const STEP_PX = 36
 
 /**
  * Três dedos para cima/baixo: sobe ou desce a câmera um andar por vez (na planta em corte, troca o andar).
- * No teclado, Page Up / Page Down fazem o mesmo.
+ * No teclado, Page Up / Page Down fazem o mesmo; os botões de andar da interface usam `floorStep`.
  */
 export function FloorSwipe() {
   const gl = useThree((s) => s.gl)
@@ -19,8 +20,6 @@ export function FloorSwipe() {
 
   useEffect(() => {
     const el = gl.domElement
-    let startY: number | null = null
-
     const step = (dir: 1 | -1) => {
       const st = useStore.getState()
       if (st.viewMode === 'windowView' || st.viewMode === 'plan3d' || st.viewMode === 'blueprint') return
@@ -41,18 +40,39 @@ export function FloorSwipe() {
       invalidate()
     }
 
-    const avgY = (t: TouchList) => {
+    // três dedos: acompanhamos os toques por pointer events na fase de captura (antes do OrbitControls)
+    const touches = new Map<number, number>()
+    let startY: number | null = null
+    let paused = false
+    const avgY = () => {
       let y = 0
-      for (let i = 0; i < t.length; i++) y += t[i].clientY
-      return y / t.length
+      touches.forEach((v) => (y += v))
+      return y / touches.size
     }
-    const onStart = (e: TouchEvent) => {
-      startY = e.touches.length === 3 ? avgY(e.touches) : null
+    const release = () => {
+      startY = null
+      if (paused && controls) controls.enabled = true
+      paused = false
     }
-    const onMove = (e: TouchEvent) => {
-      if (startY === null || e.touches.length !== 3) return
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return
+      touches.set(e.pointerId, e.clientY)
+      if (touches.size === 3) {
+        startY = avgY()
+        // com três dedos a órbita e a pinça ficam paradas
+        if (controls) {
+          controls.enabled = false
+          paused = true
+        }
+      }
+    }
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch' || !touches.has(e.pointerId)) return
+      touches.set(e.pointerId, e.clientY)
+      if (startY === null || touches.size !== 3) return
       e.preventDefault()
-      const y = avgY(e.touches)
+      e.stopPropagation()
+      const y = avgY()
       // dedos para cima (y diminui) = sobe um andar
       while (Math.abs(startY - y) >= STEP_PX) {
         const dir = startY - y > 0 ? 1 : -1
@@ -60,8 +80,10 @@ export function FloorSwipe() {
         startY -= dir * STEP_PX
       }
     }
-    const onEnd = (e: TouchEvent) => {
-      if (e.touches.length < 3) startY = null
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return
+      touches.delete(e.pointerId)
+      if (touches.size < 3) release()
     }
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName
@@ -72,16 +94,19 @@ export function FloorSwipe() {
       e.preventDefault()
     }
 
-    el.addEventListener('touchstart', onStart, { passive: true })
-    el.addEventListener('touchmove', onMove, { passive: false })
-    el.addEventListener('touchend', onEnd)
-    el.addEventListener('touchcancel', onEnd)
+    floorStep.fn = step
+    el.addEventListener('pointerdown', onDown, true)
+    el.addEventListener('pointermove', onMove, true)
+    el.addEventListener('pointerup', onUp, true)
+    el.addEventListener('pointercancel', onUp, true)
     window.addEventListener('keydown', onKey)
     return () => {
-      el.removeEventListener('touchstart', onStart)
-      el.removeEventListener('touchmove', onMove)
-      el.removeEventListener('touchend', onEnd)
-      el.removeEventListener('touchcancel', onEnd)
+      floorStep.fn = null
+      release()
+      el.removeEventListener('pointerdown', onDown, true)
+      el.removeEventListener('pointermove', onMove, true)
+      el.removeEventListener('pointerup', onUp, true)
+      el.removeEventListener('pointercancel', onUp, true)
       window.removeEventListener('keydown', onKey)
     }
   }, [gl, controls, camera, invalidate])

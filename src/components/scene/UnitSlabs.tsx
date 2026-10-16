@@ -85,7 +85,8 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
                 <div className="rounded bg-white/85 px-1.5 py-0.5 text-xs font-semibold leading-none text-ink-950">{u.id.slice(1)}</div>
               </Html>
             )}
-            {(hovered || selected) && (
+            {/* o número do apartamento escolhido já está no painel: só o realce do toque/mouse mostra etiqueta */}
+            {hovered && !selected && (
               <Html center distanceFactor={22} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
                 <div className="glass whitespace-nowrap rounded-lg px-3 py-1.5 text-center text-sm font-medium text-white">
                   {u.id}
