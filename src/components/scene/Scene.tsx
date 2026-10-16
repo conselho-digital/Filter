@@ -13,7 +13,6 @@ import { CameraRig } from './CameraRig'
 import { WindowViewRig } from './WindowViewRig'
 import { UNITS, UNITS_BY_ID } from '../../data/units'
 import { FloorSwipe } from './FloorSwipe'
-import { DragGuard } from './DragGuard'
 import { BASE_HEIGHT, FLOOR_HEIGHT, MAIN_TOWER } from '../../lib/tower'
 import { CaptureBridge, Weather } from './Weather'
 
@@ -91,7 +90,6 @@ export function Scene() {
       <Terrain night={sky.night} />
       <Tower {...MAIN_TOWER} night={sky.night} units={UNITS} podium planFloor={planFloor} />
       <FloorSwipe />
-      <DragGuard />
       {viewMode === 'aerial' && <TowerTag />}
       <CameraRig />
       <WindowViewRig />
@@ -102,15 +100,17 @@ export function Scene() {
         target={[AERIAL_TARGET.x, AERIAL_TARGET.y, AERIAL_TARGET.z]}
         minDistance={16}
         maxDistance={150}
-        enablePan={false}
+        // só na planta aberta o botão direito move o centro da câmera (pan) para ver melhor o pavimento
+        enablePan={viewMode === 'floorplan'}
+        screenSpacePanning={false}
         // fora da varanda e da planta o ângulo vertical fica travado olhando para baixo (sem horizonte)
         minPolarAngle={lockPolar ? MOBILE_POLAR : 0}
         maxPolarAngle={lockPolar ? MOBILE_POLAR : Math.PI / 2 - 0.08}
         autoRotate={touring}
         autoRotateSpeed={1.4}
         onStart={() => touring && setTouring(false)}
-        // botão direito faz o que o botão do meio (roda clicada) fazia: arrastar para aproximar/afastar
-        mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: -1 as MOUSE, RIGHT: MOUSE.DOLLY }}
+        // botão direito: aproxima/afasta; na planta aberta, move o centro da câmera
+        mouseButtons={{ LEFT: MOUSE.ROTATE, MIDDLE: -1 as MOUSE, RIGHT: viewMode === 'floorplan' ? MOUSE.PAN : MOUSE.DOLLY }}
         rotateSpeed={0.6}
         zoomSpeed={0.8}
       />

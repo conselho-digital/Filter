@@ -8,7 +8,7 @@ import { MAIN_TOWER, towerLevels, unitWorldPosition } from '../../lib/tower'
 import { useStore } from '../../store/useStore'
 import { AERIAL_DISTANCE, AERIAL_TARGET } from '../../lib/cameraConsts'
 
-const UNIT_DISTANCE = 16
+const UNIT_DISTANCE = 20
 /** planta em corte: vista de cima e de lado do pavimento */
 const PLAN_DISTANCE = 15
 const PLAN_ELEVATION = (58 * Math.PI) / 180
@@ -59,8 +59,9 @@ export function CameraRig() {
       toTarget = new Vector3(MAIN_TOWER.position[0], MAIN_TOWER.position[1] + y, MAIN_TOWER.position[2])
     } else {
       // ao fechar a unidade, volta para o eixo da torre mantendo a altura que estava sendo vista
+      // o centro da câmera fica sempre no eixo do prédio (na altura da unidade): girar orbita a torre
       toTarget = unit
-        ? new Vector3(...unitWorldPosition(unit))
+        ? new Vector3(AERIAL_TARGET.x, unitWorldPosition(unit)[1], AERIAL_TARGET.z)
         : new Vector3(AERIAL_TARGET.x, controls.target.y, AERIAL_TARGET.z)
     }
     flight.current = {
