@@ -7,4 +7,6 @@ export const AERIAL_TARGET = new Vector3(MAIN_TOWER.position[0], 8, MAIN_TOWER.p
 
 /** No celular e no computador a câmera fica travada neste ângulo (rad a partir da vertical): olha para baixo, sem horizonte. */
 export const MOBILE_POLAR = 0.8
+/** Com a planta aberta o ângulo também fica travado, mais de cima (58° de elevação), sem horizonte. */
+export const PLAN_POLAR = Math.PI / 2 - (58 * Math.PI) / 180
 export const AERIAL_DISTANCE = 46

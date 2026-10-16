@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { AERIAL_TARGET, MOBILE_POLAR } from '../../lib/cameraConsts'
+import { AERIAL_TARGET, MOBILE_POLAR, PLAN_POLAR } from '../../lib/cameraConsts'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
@@ -67,7 +67,8 @@ export function Scene() {
   const setTouring = useStore((s) => s.setTouring)
   const viewMode = useStore((s) => s.viewMode)
   // celular e computador: na vista aérea e da unidade o ângulo vertical fica travado olhando para baixo
-  const lockPolar = viewMode === 'aerial' || viewMode === 'tower' || viewMode === 'unit'
+  const lockPolar = viewMode === 'aerial' || viewMode === 'tower' || viewMode === 'unit' || viewMode === 'floorplan'
+  const polar = viewMode === 'floorplan' ? PLAN_POLAR : MOBILE_POLAR
   const selectedId = useStore((s) => s.selectedUnitId)
   const planFloor = viewMode === 'floorplan' && selectedId ? (UNITS_BY_ID.get(selectedId)?.floor ?? null) : null
   const timeOfDay = useStore((s) => s.timeOfDay)
@@ -105,8 +106,8 @@ export function Scene() {
         enablePan={viewMode === 'floorplan'}
         screenSpacePanning={false}
         // fora da varanda e da planta o ângulo vertical fica travado olhando para baixo (sem horizonte)
-        minPolarAngle={lockPolar ? MOBILE_POLAR : 0}
-        maxPolarAngle={lockPolar ? MOBILE_POLAR : Math.PI / 2 - 0.08}
+        minPolarAngle={lockPolar ? polar : 0}
+        maxPolarAngle={lockPolar ? polar : Math.PI / 2 - 0.08}
         autoRotate={touring}
         autoRotateSpeed={1.4}
         onStart={() => touring && setTouring(false)}
