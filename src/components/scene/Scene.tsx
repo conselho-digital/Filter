@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { AERIAL_TARGET, MOBILE_POLAR } from '../../lib/cameraConsts'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
@@ -60,12 +61,26 @@ function TowerTag() {
   )
 }
 
+/** true em telas de celular (largura < 768 px), acompanhando giro e redimensionamento */
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const on = () => setMobile(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  return mobile
+}
+
 export function Scene() {
+  const isMobile = useIsMobile()
   const weather = useStore((s) => s.weather)
   const quality = useStore((s) => s.quality)
   const touring = useStore((s) => s.touring)
   const setTouring = useStore((s) => s.setTouring)
   const viewMode = useStore((s) => s.viewMode)
+  const lockPolar = isMobile && (viewMode === 'aerial' || viewMode === 'tower' || viewMode === 'unit')
   const selectedId = useStore((s) => s.selectedUnitId)
   const planFloor = viewMode === 'floorplan' && selectedId ? (UNITS_BY_ID.get(selectedId)?.floor ?? null) : null
   const timeOfDay = useStore((s) => s.timeOfDay)
@@ -96,11 +111,13 @@ export function Scene() {
         makeDefault
         enableDamping
         dampingFactor={0.08}
-        target={[0, 8, 0]}
+        target={[AERIAL_TARGET.x, AERIAL_TARGET.y, AERIAL_TARGET.z]}
         minDistance={16}
         maxDistance={150}
         enablePan={false}
-        maxPolarAngle={Math.PI / 2 - 0.08}
+        // no celular (fora da varanda e da planta) o ângulo vertical fica travado olhando para baixo
+        minPolarAngle={lockPolar ? MOBILE_POLAR : 0}
+        maxPolarAngle={lockPolar ? MOBILE_POLAR : Math.PI / 2 - 0.08}
         autoRotate={touring}
         autoRotateSpeed={1.4}
         onStart={() => touring && setTouring(false)}
