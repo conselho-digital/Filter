@@ -1,8 +1,9 @@
 import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react'
-import { Color, DoubleSide, ExtrudeGeometry, InstancedMesh, Matrix4, Object3D, Shape } from 'three'
+import { CanvasTexture, Color, DoubleSide, ExtrudeGeometry, InstancedMesh, Matrix4, Object3D, RepeatWrapping, Shape, SRGBColorSpace } from 'three'
 import type { Unit } from '../../data/units'
-import { UNITS_BY_ID, UNITS_PER_FLOOR } from '../../data/units'
+import { UNITS_BY_ID } from '../../data/units'
 import { createRng } from '../../lib/random'
+import { useRoomEnv } from '../../lib/roomEnv'
 import { useStore } from '../../store/useStore'
 import {
   BALCONY_DEPTH,
@@ -28,11 +29,11 @@ interface TowerProps extends Partial<TowerConfig> {
 }
 
 // materiais e cores (concreto claro, bronze, madeira, vidro escuro)
-const CREAM = '#e9e3d6'
-const CORE_WALL = '#d6cebd'
-const CREAM_DARK = '#cfc6b3'
-const CONCRETE = '#b3aea4'
-const BRONZE = '#8b6a45'
+const CREAM = '#ddd2bc'
+const CORE_WALL = '#cfc3aa'
+const CREAM_DARK = '#c2b59b'
+const CONCRETE = '#a9a8a2'
+const BRONZE = '#4a3524'
 const WOOD = '#8a5a32'
 const GLASS = '#1f2a38'
 /** vidro das janelas e portas da fachada: reflete o céu, mais claro que o vidro do pódio */
@@ -74,7 +75,6 @@ interface Parts {
   windowsDark: Matrix4[]
   frames: Matrix4[]
   floorBands: Matrix4[]
-  fins: Matrix4[]
   plants: Matrix4[]
   plantColors: Color[]
   flowers: Matrix4[]
@@ -96,7 +96,6 @@ function buildParts(floors: number, seed: number): Parts {
     windowsDark: [],
     frames: [],
     floorBands: [],
-    fins: [],
     plants: [],
     plantColors: [],
     flowers: [],
@@ -124,25 +123,25 @@ function buildParts(floors: number, seed: number): Parts {
     p.wallSide.push(mat(...at(-w / 2 + WALL / 2, WALL_Y0 + WALL_H / 2, 0), WALL, WALL_H, D, rot))
     // porta de vidro de correr da sala, na parede do núcleo, no fundo da varanda
     const [gx, gy, gz] = at(0, WALL_Y0 + 0.26, -D / 2 + 0.014)
-    p.frames.push(mat(gx, gy, gz, w * 0.74 + 0.04, 0.42, 0.02, rot))
-    ;(rand() < 0.55 ? p.windowsLit : p.windowsDark).push(mat(gx, gy, gz, w * 0.74, 0.38, 0.03, rot))
-    p.frames.push(mat(gx, gy, gz, 0.02, 0.4, 0.04, rot))
-    // guarda-corpo fino de metal escuro no topo da parede frontal
-    p.railing.push(mat(...at(0, WALL_Y0 + WALL_H + 0.03, D / 2 - 0.012), w - 0.02, 0.06, 0.014, rot))
-    // terra da jardineira
-    p.soil.push(mat(...at(0, WALL_Y0 + 0.03, D / 2 - WALL - 0.09), w - 2 * WALL, 0.06, 0.16, rot))
-    if (rand() < 0.6) {
-      const n = 1 + Math.floor(rand() * 3)
+    p.frames.push(mat(gx, gy, gz, w * 0.5 + 0.04, 0.42, 0.02, rot))
+    ;(rand() < 0.55 ? p.windowsLit : p.windowsDark).push(mat(gx, gy, gz, w * 0.5, 0.38, 0.03, rot))
+    const top = WALL_Y0 + WALL_H
+    // guarda-corpo fino de metal escuro, recuado atrás da jardineira do parapeito
+    p.railing.push(mat(...at(0, top + 0.07, D / 2 - 0.2), w - 0.04, 0.14, 0.012, rot))
+    // jardineira no topo do parapeito, com arbustos e flores que transbordam pela frente
+    p.soil.push(mat(...at(0, top + 0.025, D / 2 - 0.1), w - 0.1, 0.05, 0.16, rot))
+    if (rand() < 0.75) {
+      const n = 1 + Math.floor(rand() * 4)
       for (let k = 0; k < n; k++) {
-        const r = 0.05 + rand() * 0.06
+        const r = 0.06 + rand() * 0.07
         const lx = (rand() - 0.5) * (w - 0.2)
-        const lz = D / 2 - WALL - 0.09 + (rand() - 0.5) * 0.08
-        const [x, y, z] = at(lx, WALL_Y0 + 0.06 + r * 0.7, lz)
-        p.plants.push(matR(x, y, z, r * 1.2, r, r * 1.2))
+        const lz = D / 2 - 0.1 + (rand() - 0.5) * 0.08
+        const [x, y, z] = at(lx, top + 0.05 + r * 0.7, lz)
+        p.plants.push(matR(x, y, z, r * 1.3, r, r * 1.3))
         p.plantColors.push(new Color(GREENS[Math.floor(rand() * GREENS.length)]))
-        if (rand() < 0.5) {
-          const fr = 0.022 + rand() * 0.02
-          const [fx, fy, fz] = at(lx + (rand() - 0.5) * 0.1, WALL_Y0 + 0.06 + r * 1.5, lz)
+        if (rand() < 0.75) {
+          const fr = 0.026 + rand() * 0.024
+          const [fx, fy, fz] = at(lx + (rand() - 0.5) * 0.12, top + 0.05 + r * 1.5, lz + (rand() - 0.3) * 0.05)
           p.flowers.push(mat(fx, fy, fz, fr, fr, fr))
           p.flowerColors.push(new Color(FLOWERS[Math.floor(rand() * FLOWERS.length)]))
         }
@@ -154,7 +153,7 @@ function buildParts(floors: number, seed: number): Parts {
       for (let k = 0; k < n; k++) {
         const len = 0.12 + rand() * 0.18
         const lx = (rand() - 0.5) * (w - 0.14)
-        p.cascade.push(mat(...at(lx, WALL_Y0 + WALL_H - len / 2 + 0.03, D / 2 + 0.012), 0.05 + rand() * 0.05, len, 0.025, rot))
+        p.cascade.push(mat(...at(lx, WALL_Y0 + WALL_H - len / 2 + 0.03, D / 2 + 0.012), 0.06 + rand() * 0.06, len, 0.03, rot))
         p.cascadeColors.push(new Color(GREENS[Math.floor(rand() * GREENS.length)]))
       }
     }
@@ -162,11 +161,11 @@ function buildParts(floors: number, seed: number): Parts {
 
   /** janela bem recuada, com moldura escura (quadro um pouco maior atrás do vidro). */
   const addWindow = (x: number, y: number, z: number, rot: number, w: number) => {
-    const wy = y + WALL_Y0 + 0.26
-    p.frames.push(mat(x, wy, z, w + 0.05, 0.44, 0.02, rot))
-    ;(rand() < 0.55 ? p.windowsLit : p.windowsDark).push(mat(x, wy, z, w, 0.4, 0.03, rot))
-    p.frames.push(mat(x, wy, z, 0.02, 0.42, 0.045, rot)) // montante central
-    p.frames.push(mat(x, wy - 0.19, z, w + 0.06, 0.025, 0.05, rot)) // peitoril
+    const wy = y + WALL_Y0 + 0.27
+    p.frames.push(mat(x, wy, z, w + 0.06, 0.42, 0.02, rot))
+    ;(rand() < 0.55 ? p.windowsLit : p.windowsDark).push(mat(x, wy, z, w, 0.36, 0.03, rot))
+    p.frames.push(mat(x, wy, z, 0.018, 0.38, 0.045, rot)) // montante central
+    p.frames.push(mat(x, wy - 0.19, z, w + 0.08, 0.022, 0.05, rot)) // peitoril
   }
 
   for (let i = 0; i < floors; i++) {
@@ -179,7 +178,7 @@ function buildParts(floors: number, seed: number): Parts {
       for (const sign of [1, -1] as const) {
         const rot = sign === 1 ? 0 : Math.PI
         if (cell.block) addBlock(cell.x, y, sign * (CORE_DEPTH / 2 + D / 2), rot, longPitch)
-        else addWindow(cell.x, y, sign * (CORE_DEPTH / 2 + 0.012), rot, longPitch * 0.78)
+        else addWindow(cell.x, y, sign * (CORE_DEPTH / 2 + 0.012), rot, longPitch * 0.42)
       }
     }
     // empenas laterais (+x e -x), mesma lógica
@@ -187,20 +186,9 @@ function buildParts(floors: number, seed: number): Parts {
       for (const sign of [1, -1] as const) {
         const rot = sign * (Math.PI / 2)
         if (cell.block) addBlock(sign * (CORE_WIDTH / 2 + D / 2), y, cell.x, rot, sidePitch)
-        else addWindow(sign * (CORE_WIDTH / 2 + 0.012), y, cell.x, rot, sidePitch * 0.78)
+        else addWindow(sign * (CORE_WIDTH / 2 + 0.012), y, cell.x, rot, sidePitch * 0.42)
       }
     }
-  }
-  // aletas verticais de concreto: separam os 3 apartamentos de cada andar nas duas fachadas longas
-  // e marcam os quatro cantos do fuste
-  const shaft = floors * FLOOR_HEIGHT
-  const midY = BASE_HEIGHT + shaft / 2
-  for (const sign of [1, -1] as const) {
-    for (let k = 1; k < UNITS_PER_FLOOR; k++) {
-      const x = -CORE_WIDTH / 2 + (k * CORE_WIDTH) / UNITS_PER_FLOOR
-      p.fins.push(mat(x, midY, sign * (CORE_DEPTH / 2 + 0.05), 0.07, shaft, 0.12))
-    }
-    for (const cx of [-1, 1] as const) p.fins.push(mat(cx * (CORE_WIDTH / 2 - 0.02), midY, sign * (CORE_DEPTH / 2 - 0.02), 0.14, shaft, 0.14))
   }
   return p
 }
@@ -254,25 +242,53 @@ function roundedRect(w: number, d: number, r: number) {
 
 /** Penthouse recuada no topo: vidro de piso a teto, caixilho de bronze e laje de cobertura plana. */
 function Crown({ top, night }: { top: number; night: number }) {
+  const env = useRoomEnv()
   const W = CORE_WIDTH - 1.1
   const Dp = CORE_DEPTH - 0.7
   const H = 0.78
   const mullions = useMemo(() => {
     const out: Matrix4[] = []
-    const nx = Math.round(W / 0.32)
+    const nx = Math.round(W / 0.62)
     for (let k = 0; k <= nx; k++) {
       const x = -W / 2 + (k * W) / nx
-      out.push(mat(x, top + 0.08 + H / 2, Dp / 2, 0.04, H, 0.04))
-      out.push(mat(x, top + 0.08 + H / 2, -Dp / 2, 0.04, H, 0.04))
+      out.push(mat(x, top + 0.08 + H / 2, Dp / 2, 0.05, H, 0.05))
+      out.push(mat(x, top + 0.08 + H / 2, -Dp / 2, 0.05, H, 0.05))
     }
-    const nz = Math.round(Dp / 0.32)
+    const nz = Math.round(Dp / 0.62)
     for (let k = 1; k < nz; k++) {
       const z = -Dp / 2 + (k * Dp) / nz
-      out.push(mat(W / 2, top + 0.08 + H / 2, z, 0.04, H, 0.04))
-      out.push(mat(-W / 2, top + 0.08 + H / 2, z, 0.04, H, 0.04))
+      out.push(mat(W / 2, top + 0.08 + H / 2, z, 0.05, H, 0.05))
+      out.push(mat(-W / 2, top + 0.08 + H / 2, z, 0.05, H, 0.05))
     }
+    // travessa de bronze no meio dos vãos de vidro
+    out.push(mat(0, top + 0.08 + H * 0.62, Dp / 2, W, 0.05, 0.06))
+    out.push(mat(0, top + 0.08 + H * 0.62, -Dp / 2, W, 0.05, 0.06))
+    out.push(mat(W / 2, top + 0.08 + H * 0.62, 0, 0.06, 0.05, Dp))
+    out.push(mat(-W / 2, top + 0.08 + H * 0.62, 0, 0.06, 0.05, Dp))
     return out
   }, [W, Dp, top])
+  // pilares de concreto que escalonam a coroa (como nos renders do topo)
+  const piers = useMemo(() => {
+    const out: Matrix4[] = []
+    for (let k = 0; k <= 3; k++) {
+      const x = -W / 2 + (k * W) / 3
+      out.push(mat(x, top + 0.08 + (H + 0.12) / 2, Dp / 2 + 0.02, 0.3, H + 0.12, 0.34))
+      out.push(mat(x, top + 0.08 + (H + 0.12) / 2, -Dp / 2 - 0.02, 0.3, H + 0.12, 0.34))
+    }
+    out.push(mat(W / 2 + 0.02, top + 0.08 + (H + 0.12) / 2, 0, 0.34, H + 0.12, 0.3))
+    out.push(mat(-W / 2 - 0.02, top + 0.08 + (H + 0.12) / 2, 0, 0.34, H + 0.12, 0.3))
+    return out
+  }, [W, Dp, top])
+  // guarda-corpo fino de metal escuro em volta do terraço
+  const rails = useMemo(
+    () => [
+      mat(0, top + 0.13, CORE_DEPTH / 2 - 0.03, CORE_WIDTH - 0.1, 0.1, 0.014),
+      mat(0, top + 0.13, -CORE_DEPTH / 2 + 0.03, CORE_WIDTH - 0.1, 0.1, 0.014),
+      mat(CORE_WIDTH / 2 - 0.03, top + 0.13, 0, 0.014, 0.1, CORE_DEPTH - 0.1),
+      mat(-CORE_WIDTH / 2 + 0.03, top + 0.13, 0, 0.014, 0.1, CORE_DEPTH - 0.1),
+    ],
+    [top],
+  )
   return (
     <group>
       {/* terraço de cobertura (laje ocupa toda a planta) */}
@@ -283,16 +299,24 @@ function Crown({ top, night }: { top: number; night: number }) {
       {/* caixa de vidro recuada */}
       <mesh position={[0, top + 0.08 + H / 2, 0]} castShadow>
         <boxGeometry args={[W, H, Dp]} />
-        <meshStandardMaterial color={GLASS} roughness={0.12} metalness={0.45} emissive="#ffcf8a" emissiveIntensity={night * 0.9} />
+        <meshStandardMaterial color={GLASS} roughness={0.12} metalness={0.45} emissive="#ffcf8a" emissiveIntensity={night * 0.9} envMap={env} envMapIntensity={0.12 + 0.9 * (1 - night)} />
       </mesh>
       <Inst m={mullions}>
         {box}
         <meshStandardMaterial color={BRONZE} roughness={0.5} metalness={0.5} />
       </Inst>
-      {/* laje de cobertura plana com fachada de madeira */}
+      <Inst m={piers}>
+        {box}
+        <meshStandardMaterial color={CREAM} roughness={0.95} />
+      </Inst>
+      <Inst m={rails} cast={false}>
+        {box}
+        <meshStandardMaterial color={RAIL} roughness={0.5} metalness={0.4} />
+      </Inst>
+      {/* laje de cobertura plana, fascia escura de ripas de madeira */}
       <mesh position={[0, top + 0.08 + H + 0.05, 0]} castShadow>
         <boxGeometry args={[W + 0.5, 0.1, Dp + 0.5]} />
-        <meshStandardMaterial color={WOOD} roughness={0.7} />
+        <meshStandardMaterial color="#4a3425" roughness={0.75} />
       </mesh>
       <mesh position={[0, top + 0.08 + H + 0.115, 0]} castShadow>
         <boxGeometry args={[W + 0.5, 0.03, Dp + 0.5]} />
@@ -319,6 +343,25 @@ function Crown({ top, night }: { top: number; night: number }) {
 
 /** Pódio largo e duplo: pilotis robustos, cortina de vidro com madeira, café, mesas, bananeiras e praça. */
 function Podium({ night }: { night: number }) {
+  const env = useRoomEnv()
+  // piso de pedra da praça: textura com juntas, gerada no canvas
+  const paving = useMemo(() => {
+    const c = document.createElement('canvas')
+    c.width = c.height = 64
+    const g = c.getContext('2d')!
+    g.fillStyle = '#cbc4b5'
+    g.fillRect(0, 0, 64, 64)
+    g.strokeStyle = '#a9a294'
+    g.lineWidth = 3
+    g.strokeRect(0, 0, 64, 64)
+    const t = new CanvasTexture(c)
+    t.wrapS = t.wrapT = RepeatWrapping
+    t.colorSpace = SRGBColorSpace
+    t.repeat.set((POD_W + 1.8) / 0.7, (POD_D + 1.8) / 0.7)
+    t.anisotropy = 4
+    return t
+  }, [])
+  useLayoutEffect(() => () => paving.dispose(), [paving])
   const parts = useMemo(() => {
     const rand = createRng(4242)
     const mullions: Matrix4[] = []
@@ -338,11 +381,11 @@ function Podium({ night }: { night: number }) {
     }
     // pilotis: colunas robustas de concreto aparente no perímetro
     const columns: Matrix4[] = []
-    const cn = 8
+    const cn = 6
     for (let k = 0; k < cn; k++) {
-      const x = -POD_W / 2 + 0.15 + (k * (POD_W - 0.3)) / (cn - 1)
-      columns.push(mat(x, BASE_HEIGHT / 2, POD_D / 2 - 0.15, 0.3, BASE_HEIGHT, 0.3))
-      columns.push(mat(x, BASE_HEIGHT / 2, -(POD_D / 2 - 0.15), 0.3, BASE_HEIGHT, 0.3))
+      const x = -POD_W / 2 + 0.25 + (k * (POD_W - 0.5)) / (cn - 1)
+      columns.push(mat(x, BASE_HEIGHT / 2, POD_D / 2 - 0.2, 0.46, BASE_HEIGHT, 0.46))
+      columns.push(mat(x, BASE_HEIGHT / 2, -(POD_D / 2 - 0.2), 0.46, BASE_HEIGHT, 0.46))
     }
     // mesas e cadeiras do café na praça
     const tables: Matrix4[] = []
@@ -393,12 +436,12 @@ function Podium({ night }: { night: number }) {
       {/* praça pavimentada */}
       <mesh position={[0, 0.006, 0.9]} receiveShadow>
         <boxGeometry args={[POD_W + 1.8, 0.03, POD_D + 1.8]} />
-        <meshStandardMaterial color="#bdb6a8" roughness={1} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
+        <meshStandardMaterial map={paving} roughness={1} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
       </mesh>
       {/* cortina de vidro do pódio (recuada atrás dos pilotis) */}
       <mesh position={[0, (BASE_HEIGHT - 0.12) / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[POD_W - 0.5, BASE_HEIGHT - 0.12, POD_D - 0.7]} />
-        <meshStandardMaterial color={GLASS} roughness={0.12} metalness={0.45} emissive="#ffcf8a" emissiveIntensity={night * 0.8} />
+        <meshStandardMaterial color={GLASS} roughness={0.12} metalness={0.45} emissive="#ffcf8a" emissiveIntensity={night * 0.8} envMap={env} envMapIntensity={0.12 + 0.9 * (1 - night)} />
       </mesh>
       <Inst m={parts.mullions} cast={false}>
         {box}
@@ -448,6 +491,9 @@ function Podium({ night }: { night: number }) {
 
 /** Torre residencial de concreto claro, com tabuleiro de blocos em balanço, penthouse recuada e pódio largo. */
 export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, units, podium }: TowerProps) {
+  // vidros refletem um ambiente claro de dia e quase nada à noite
+  const env = useRoomEnv()
+  const refl = 0.12 + 0.9 * (1 - night)
   const built = useMemo(() => buildParts(floors, seed), [floors, seed])
 
   // na vista da varanda, some a vegetação colada na câmera para não tapar o panorama
@@ -546,11 +592,6 @@ export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, unit
         <meshStandardMaterial color={CREAM_DARK} roughness={0.95} />
       </Inst>
 
-      <Inst m={parts.fins}>
-        {box}
-        <meshStandardMaterial color={CREAM_DARK} roughness={0.95} />
-      </Inst>
-
       {/* blocos de varanda em balanço (tabuleiro) */}
       <Inst m={parts.slab}>
         {box}
@@ -576,15 +617,15 @@ export function Tower({ position = [0, 0, 0], floors = 22, seed = 1, night, unit
       {/* janelas recuadas com moldura escura; de noite parte delas acende */}
       <Inst m={parts.frames} cast={false}>
         {box}
-        <meshStandardMaterial color="#22272e" roughness={0.6} />
+        <meshStandardMaterial color="#2b2118" roughness={0.6} />
       </Inst>
       <Inst m={parts.windowsDark} cast={false}>
         {box}
-        <meshStandardMaterial color={PANE} roughness={0.15} metalness={0.3} />
+        <meshStandardMaterial color={PANE} roughness={0.15} metalness={0.3} envMap={env} envMapIntensity={refl} />
       </Inst>
       <Inst m={parts.windowsLit} cast={false}>
         {box}
-        <meshStandardMaterial color={PANE} roughness={0.15} metalness={0.3} emissive="#ffcf8a" emissiveIntensity={night * 1.5} />
+        <meshStandardMaterial color={PANE} roughness={0.15} metalness={0.3} emissive="#ffcf8a" emissiveIntensity={night * 1.5} envMap={env} envMapIntensity={refl} />
       </Inst>
 
       {/* jardineiras: arbustos, flores e folhagem caindo */}
