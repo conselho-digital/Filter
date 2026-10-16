@@ -88,7 +88,8 @@ export function UnitPanel() {
   }, [selectedId, selectUnit, viewMode])
 
   // na vista da varanda o painel sai de cena (a barra inferior assume)
-  if (!unit || viewMode === 'windowView') return null
+  // na varanda, na planta 2D e no apartamento em 3D (telas cheias) o painel sai de cena
+  if (!unit || viewMode === 'windowView' || viewMode === 'blueprint' || viewMode === 'plan3d') return null
   const priceShown = priceShownIds.includes(unit.id)
   const favorite = favoriteIds.includes(unit.id)
   const comparing = compareIds.includes(unit.id)
@@ -176,7 +177,7 @@ export function UnitPanel() {
         <Action icon={<AppWindow size={20} />} onClick={openWindowView}>
           Window View
         </Action>
-        <Action icon={<Box size={20} />} onClick={openPlan3d} active={viewMode === 'plan3d'}>
+        <Action icon={<Box size={20} />} onClick={openPlan3d}>
           Apartamento em 3D
         </Action>
         <Action icon={<FileText size={20} />} onClick={openFloorPlan} active={viewMode === 'floorplan'}>

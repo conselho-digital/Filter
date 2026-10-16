@@ -32,9 +32,60 @@ function usePlanks(base: string, line: string) {
   }, [base, line])
 }
 
+/** Canvases de piso desenhados uma vez (tábuas, porcelanato com rejunte, deck), sem arquivos externos. */
+const FLOOR_CANVAS: Partial<Record<NonNullable<Prim['tex']>, HTMLCanvasElement>> = {}
+function floorCanvas(kind: NonNullable<Prim['tex']>) {
+  const cached = FLOOR_CANVAS[kind]
+  if (cached) return cached
+  const c = document.createElement('canvas')
+  c.width = c.height = 256
+  const g = c.getContext('2d')!
+  if (kind === 'tile') {
+    g.fillStyle = '#ffffff'
+    g.fillRect(0, 0, 256, 256)
+    for (let i = 0; i < 4; i++)
+      for (let j = 0; j < 4; j++) {
+        g.fillStyle = `rgba(0,0,0,${0.02 + ((i * 3 + j * 5) % 4) * 0.012})`
+        g.fillRect(i * 64 + 2, j * 64 + 2, 60, 60)
+      }
+    g.fillStyle = 'rgba(90,85,78,0.55)'
+    for (let k = 0; k <= 4; k++) {
+      g.fillRect(k * 64 - 1, 0, 2, 256)
+      g.fillRect(0, k * 64 - 1, 256, 2)
+    }
+  } else {
+    g.fillStyle = '#ffffff'
+    g.fillRect(0, 0, 256, 256)
+    const rows = kind === 'deck' ? 6 : 8
+    const h = 256 / rows
+    for (let i = 0; i < rows; i++) {
+      g.fillStyle = `rgba(60,35,12,${0.05 + (i % 3) * 0.04})`
+      g.fillRect(0, i * h, 256, h)
+      g.fillStyle = kind === 'deck' ? 'rgba(40,25,10,0.55)' : 'rgba(70,40,15,0.35)'
+      g.fillRect(0, i * h, 256, kind === 'deck' ? 4 : 2)
+      g.fillRect((i * 83) % 256, i * h, 2, h)
+    }
+  }
+  FLOOR_CANVAS[kind] = c
+  return c
+}
+
+/** metros cobertos por uma repetição da textura */
+const TEX_METERS = { wood: 1.6, tile: 1.2, deck: 1.4 } as const
+
 export function PrimMesh({ p }: { p: Prim }) {
   const color = useMemo(() => new Color(p.color), [p.color])
   const transparent = p.opacity !== undefined
+  const map = useMemo(() => {
+    if (!p.tex) return null
+    const t = new CanvasTexture(floorCanvas(p.tex))
+    t.wrapS = t.wrapT = RepeatWrapping
+    t.colorSpace = SRGBColorSpace
+    t.anisotropy = 4
+    t.repeat.set(p.sx / TEX_METERS[p.tex], p.sz / TEX_METERS[p.tex])
+    return t
+  }, [p.tex, p.sx, p.sz])
+  useEffect(() => () => map?.dispose(), [map])
   return (
     <mesh
       position={[p.x, p.y, p.z]}
@@ -48,7 +99,8 @@ export function PrimMesh({ p }: { p: Prim }) {
       {p.shape === 'sph' && <sphereGeometry args={[0.5, 16, 12]} />}
       <meshStandardMaterial
         color={color}
-        roughness={p.rough ?? 0.78}
+        map={map}
+        roughness={p.rough ?? (p.tex === 'tile' ? 0.45 : 0.78)}
         metalness={p.metal ?? 0.02}
         transparent={transparent}
         opacity={p.opacity ?? 1}
@@ -192,7 +244,7 @@ export function Apartment3DView() {
       role="dialog"
       aria-modal="true"
       aria-label={`Apartamento ${unit.id} em 3D`}
-      className="pointer-events-auto absolute inset-0 z-20 flex flex-col bg-[#eef2f6] text-[#0a0f1d] md:right-[380px]"
+      className="pointer-events-auto absolute inset-0 z-20 flex flex-col bg-[#eef2f6] text-[#0a0f1d]"
     >
       <header className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-4 px-6 pt-5">
         <div>

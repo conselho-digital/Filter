@@ -574,7 +574,8 @@ export function Tower({ position = [0, 0, 0], rotation = 0, floors = 22, seed = 
       windowsLit: below(parts.windowsLit, 0.05),
       windowsDark: below(parts.windowsDark, 0.05),
       frames: below(parts.frames, 0.05),
-      floorBands: below(parts.floorBands, 0.05),
+      // a faixa do próprio pavimento cobriria os pisos da planta
+      floorBands: below(parts.floorBands, -0.01),
       plants: pl.m,
       plantColors: pl.c,
       flowers: fl.m,

@@ -304,3 +304,11 @@ O dono do projeto enviou a planta T3 com móveis desenhados e um exemplo de reco
 
 - **Computador:** o painel da unidade ocupa a **altura toda** e tem **760 px** de largura (dados em 3 colunas, ações em 2), com **25% de transparência** (`.glass-panel` em `index.css`); a barra de horário vai para a área livre à esquerda. **Celular:** folha inferior recolhível (30%/60%), quase opaca.
 - **Zoom:** afastamento máximo **50** (1/3 do antigo 150; vista aérea inicial a 46); aproximação mínima **10**, e **3 com a planta aberta** para ver o apartamento de perto.
+
+## 🚪 Acabamento do apartamento na planta
+
+- `buildApartment3D(unit, size, { cutaway: true })` na planta dentro do prédio: todas as paredes na mesma altura de corte (sem laje-base, janelas altas e verga); janelas viram faixas de vidro no topo das paredes externas.
+- **Paredes que faltavam:** área de serviço fechada (parede com porta para a cozinha e parede cega para a sala); lateral esquerda com a **porta de entrada** na sala.
+- **Portas indicadas:** folha de madeira aberta a 90° com puxador, soleira escura no vão e **arco de giro tracejado no piso** (função `door`); porta de correr da sala para a varanda com trilho e folha aberta.
+- **Pisos:** texturas em canvas (`Prim.tex`): tábuas de madeira na área social e íntima, porcelanato com rejunte nas áreas molhadas e deck na varanda; rodapé em volta dos cômodos. A faixa do próprio pavimento da torre saiu do corte (cobria os pisos).
+- Planta 2D e Apartamento em 3D agora abrem em tela cheia; o painel da unidade some nessas telas.

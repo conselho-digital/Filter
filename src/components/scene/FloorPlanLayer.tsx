@@ -73,7 +73,7 @@ function Apartment3DInTower({ unit }: { unit: Unit }) {
     if (last) return { size: { width: D * M, depth: w * M }, origin: [x1, -D / 2] as const, rot: -Math.PI / 2 }
     return { size: { width: D * M, depth: w * M }, origin: [x0, D / 2] as const, rot: Math.PI / 2 }
   }, [unit])
-  const apt = useMemo(() => buildApartment3D(unit, layout.size), [unit, layout])
+  const apt = useMemo(() => buildApartment3D(unit, layout.size, { cutaway: true }), [unit, layout])
   // ponto do apartamento (metros) -> local da torre, para as etiquetas
   const toLocal = (px: number, pz: number): [number, number] => {
     const c = Math.cos(layout.rot)

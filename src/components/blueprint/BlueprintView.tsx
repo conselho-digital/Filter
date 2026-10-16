@@ -117,7 +117,7 @@ export function BlueprintView() {
       role="dialog"
       aria-modal="true"
       aria-label={`Planta baixa do apartamento ${unit.id}`}
-      className="print-area pointer-events-auto absolute inset-0 z-20 flex flex-col bg-[#f4f5f7] text-[#0a0f1d] md:right-[380px]"
+      className="print-area pointer-events-auto absolute inset-0 z-20 flex flex-col bg-[#f4f5f7] text-[#0a0f1d]"
     >
       <header className="flex items-start justify-between gap-4 px-6 pt-5">
         <div>
