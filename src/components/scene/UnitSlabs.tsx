@@ -1,9 +1,9 @@
-import { Html } from '@react-three/drei'
+import { Edges, Html } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import { Mesh } from 'three'
 import type { Unit } from '../../data/units'
 import { UNITS_PER_FLOOR } from '../../data/units'
-import { CORE_DEPTH, CORE_WIDTH, FLOOR_HEIGHT, SLAB_THICKNESS, unitLocalX } from '../../lib/tower'
+import { BALCONY_DEPTH, CORE_DEPTH, FLOOR_HEIGHT, unitSpan } from '../../lib/tower'
 import { isDefaultFilters, matchesFilters } from '../../lib/filters'
 import { STATUS_COLOR, STATUS_LABEL } from '../../lib/status'
 import { useStore } from '../../store/useStore'
@@ -12,9 +12,18 @@ import { useStore } from '../../store/useStore'
 const meshRaycast = Mesh.prototype.raycast
 const noRaycast = () => undefined
 
-const WIDTH = CORE_WIDTH / UNITS_PER_FLOOR - 0.06
-const HEIGHT = FLOOR_HEIGHT - SLAB_THICKNESS - 0.04
-const DEPTH = CORE_DEPTH + 0.1
+// o volume envolve todo o lado de fora do apartamento, varandas incluídas
+const OUT = BALCONY_DEPTH + 0.06
+const HEIGHT = FLOOR_HEIGHT - 0.03
+const DEPTH = CORE_DEPTH + 2 * OUT
+
+/** Centro e largura do volume: os apartamentos das pontas também cobrem as varandas da empena. */
+function unitBox(slot: number): { x: number; width: number } {
+  let [x0, x1] = unitSpan(slot)
+  if (slot === 0) x0 -= OUT
+  if (slot === UNITS_PER_FLOOR - 1) x1 += OUT
+  return { x: (x0 + x1) / 2, width: x1 - x0 - 0.03 }
+}
 
 /** Volumes translúcidos clicáveis de um andar, coloridos pelo status da unidade. */
 export function UnitSlabs({ units }: { units: Unit[] }) {
@@ -39,13 +48,14 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
         const shown = matches && statusVisible[u.status]
         const color = matches || selected ? STATUS_COLOR[u.status] : '#6b7280'
         // sem botão marcado a fachada fica limpa; o volume continua clicável (opacidade 0)
-        const opacity = selected ? 0.95 : hovered ? 0.6 : shown ? 0.5 : !matches && filterActive ? 0.5 : 0
+        const opacity = selected ? 0.9 : hovered ? 0.8 : shown ? 0.75 : !matches && filterActive ? 0.5 : 0
+        const box = unitBox(u.slot)
         const emissive = selected ? 1.1 : hovered ? 0.5 : shown ? 0.3 : 0
         return (
           <mesh
             key={u.id}
             raycast={matches ? meshRaycast : noRaycast}
-            position={[unitLocalX(u.slot), SLAB_THICKNESS + FLOOR_HEIGHT / 2 - SLAB_THICKNESS / 2, 0]}
+            position={[box.x, FLOOR_HEIGHT / 2, 0]}
             onClick={(e: ThreeEvent<MouseEvent>) => {
               if (!matches) return // apagada pelo filtro: deixa o toque passar
               e.stopPropagation()
@@ -59,7 +69,7 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
             }}
             onPointerOut={() => setHovered(null)}
           >
-            <boxGeometry args={[WIDTH, HEIGHT, DEPTH]} />
+            <boxGeometry args={[box.width, HEIGHT, DEPTH]} />
             <meshStandardMaterial
               color={color}
               emissive={color}
@@ -68,6 +78,8 @@ export function UnitSlabs({ units }: { units: Unit[] }) {
               opacity={opacity}
               depthWrite={false}
             />
+            {/* borda preta: cada apartamento aparece separado do vizinho */}
+            {opacity > 0 && <Edges color="#000000" />}
             {shown && !hovered && !selected && (viewMode === 'unit' || viewMode === 'tower') && (
               <Html center position={[0, 0, DEPTH / 2 + 0.05]} distanceFactor={15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
                 <div className="rounded bg-white/85 px-1.5 py-0.5 text-xs font-semibold leading-none text-ink-950">{u.id.slice(1)}</div>
